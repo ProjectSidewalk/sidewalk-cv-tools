@@ -19,13 +19,15 @@ The function used to label a given panorama is ```pred_pano_labels``` in the fil
 - pano_id: The id of the pano that the prediction should be run on. It should be a 22 character string like: ```1a1UlhadSS_3dNtc5oI10Q```
 - path\_to\_gsv\_scrapes: The path to the root folder where the panoramas are stored. The folder structure should look like this:
 	```
-	├── \[first 2 characters of pano_id\]
-	│   ├── \[pano_id\].jpg
-	│   ├── \[pano_id\].txt
-	│   ├── \[pano_id\].xml
+	[pano-root-dir]
+	├── [first 2 characters of pano_id]
+	│   ├── [pano_id].jpg
+	│   ├── [pano_id].txt
+	│   ├── [pano_id].xml
 	```
 	or in practice:
 	```
+	panos
 	├── 1a
 	│   ├── 1a1UlhadSS_3dNtc5oI10Q.jpg
 	│   ├── 1a1UlhadSS_3dNtc5oI10Q.txt
@@ -35,8 +37,8 @@ The function used to label a given panorama is ```pred_pano_labels``` in the fil
 - GSV_IMAGE_WIDTH: The width of the panorama image in pixels
 - GSV_IMAGE_HEIGHT: The height of the panorama image in pixels
 - model_dir: The root directory that the model is stored in
-- save_labeled_pano (optional): This controls whether the function saves a panorama with the labels drawn on it to ```temp/viz``` for debugging. The default is ```python False```.
-- verbose (optional): This enables/disables debugging printouts. The default is ```python False```
+- save_labeled_pano (optional): This controls whether the function saves a panorama with the labels drawn on it to ```temp/viz``` for debugging. The default is ```False```.
+- verbose (optional): This enables/disables debugging printouts. The default is ```False```
 
 ####Returns:
 - A dict that stores the XY coordinate of each predicted label and the corresponding string label. Ex:
