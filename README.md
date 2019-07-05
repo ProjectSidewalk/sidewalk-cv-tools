@@ -1,8 +1,8 @@
-#Sidewalk-CV-Tools
+# Sidewalk-CV-Tools
 Set of functions for using computer vision to label panoramas and validate human-labeled streetscape items.
 
 ## Setup
-##Anaconda Installation
+## Anaconda Installation
 
 Download Anaconda for your system [here](https://www.anaconda.com/distribution/)
 
@@ -12,7 +12,7 @@ After entering the environment, install the requiremnts.txt using this command `
 
 PyTorch is not included in that file because the installation is system specific. Follow the instructions [here](https://pytorch.org/get-started/locally/) to install it. Make sure to select CUDA for faster Prediction.
 
-##Labeling
+## Labeling
 The function used to label a given panorama is ```pred_pano_labels``` in the file labeling/pred_pano_labels.py.
 
 **Arguments:**
@@ -56,5 +56,5 @@ There are two examples in ```labeling/samples```. One uses a lower resolution DC
 
 If you want to write your own code that uses ```pred_pano_labels```, and you need to save the labeled pano to disk, make sure to copy the ```roboto.tff``` file into the same directory as the program calling the function to avoid errors.
 
-##Validation
+## Validation
 _Needs to be coded_
