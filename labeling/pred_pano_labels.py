@@ -28,22 +28,13 @@ from torch.optim import lr_scheduler
 from TwoFileFolder import TwoFileFolder
 from resnet_extended1 import extended_resnet18
 
-GSV_IMAGE_HEIGHT = utils.GSV_IMAGE_HEIGHT
-GSV_IMAGE_WIDTH  = utils.GSV_IMAGE_WIDTH
-
-#label_from_int = ('Curb Cut', 'Missing Cut', 'Obstruction', 'Sfc Problem')
 pytorch_label_from_int = ('Missing Cut', "Null", 'Obstruction', "Curb Cut", "Sfc Problem")
-
-model_dir = 'models/'
-model_name = "20ep_sw_re18_2ff2"
-
-model_path = os.path.join(model_dir, model_name+'.pt')
 
 
 ############################################
 
 
-def predict_from_crops(dir_containing_crops, verbose=False):
+def predict_from_crops(dir_containing_crops, model_path,verbose=False):
     ''' use the TwoFileFolder dataloader to load images and feed them
         through the model
         returns a dict mapping pano_ids to dicts of {coord: prediction lists}
@@ -138,7 +129,7 @@ def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbo
     return path
 
 
-def sliding_window(pano, stride=100, bottom_space=1600, side_space=300, cor_thresh=70):
+def sliding_window(pano, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, stride=100, bottom_space=1600, side_space=300, cor_thresh=70):
     ''' take in a pano and produce a set of feats, ready for writing to a file
         labels assigned if the crop is within cor_thresh of a true label
         
@@ -169,7 +160,7 @@ def sliding_window(pano, stride=100, bottom_space=1600, side_space=300, cor_thre
         y -= stride # jump down a row
         x = side_space
 
-def make_sliding_window_crops(pano_id, path_to_gsv_scrapes, num_threads=4, verbose=False):
+def make_sliding_window_crops(pano_id, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, path_to_gsv_scrapes, num_threads=4, verbose=False):
     ''' make a set of crops for a single pano based on a sliding window'''
     num_crops = 0
     num_fail  = 0
@@ -202,7 +193,7 @@ def make_sliding_window_crops(pano_id, path_to_gsv_scrapes, num_threads=4, verbo
     pano.photog_heading = None
 
     n_crops = 0
-    for feat in sliding_window(pano): # ignoring labels here
+    for feat in sliding_window(pano, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT): # ignoring labels here
         sv_x, sv_y = feat.sv_image_x, feat.sv_image_y
         if verbose:
             print "added crop ({},{}) to queue".format(sv_x, sv_y)
@@ -218,7 +209,7 @@ def make_sliding_window_crops(pano_id, path_to_gsv_scrapes, num_threads=4, verbo
                 if verbose:
                     print "cropping around ({},{})".format(crop_info[1],crop_info[2])
                     #print "crop_info: ", crop_info
-                utils.make_single_crop(pano_img_copy,depth_data,crop_info[0],crop_info[1],crop_info[2],crop_info[3],crop_info[4])
+                utils.make_single_crop(pano_img_copy ,GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_data, crop_info[0], crop_info[1], crop_info[2], crop_info[3], crop_info[4])
                 c_queue.task_done()
             except Exception as e:
                 print "\t cropping failed"
@@ -271,7 +262,7 @@ def read_predictions_from_file(path):
     return predictions
 
 
-def annotate(img, pano_yaw_deg, coords, label, color, show_coords=True, box=None):
+def annotate(img, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, pano_yaw_deg, coords, label, color, show_coords=True, box=None):
     """ takes in an image object and labels it at specified coords
         translates streetview coords to pixel coords
         if given a box, marks that box around the label
@@ -295,7 +286,7 @@ def annotate(img, pano_yaw_deg, coords, label, color, show_coords=True, box=None
     font  = ImageFont.truetype("roboto.ttf", 60, encoding="unic")
     draw.text((x+r+10, y), label, fill=color, font=font)
 
-def show_predictions_on_image(pano_root, correct, out_img, show_coords=True, show_box=False, verbose=False):
+def show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, correct, out_img, show_coords=True, show_box=False, verbose=False):
     ''' annotates an image with with predictions. 
         each of the arguments in (correct, incorrect, predicted_gt_pts, missed_gt_points is
         a dict of string coordinates and labels (output from scoring.score)
@@ -338,7 +329,7 @@ def show_predictions_on_image(pano_root, correct, out_img, show_coords=True, sho
         
         if verbose:
             print "Found a {} at ({},{})".format(label, sv_x, sv_y)
-        annotate(img, pano_yaw_deg, (sv_x, sv_y), label, color, show_coords, box,verbose)
+        annotate(img, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, pano_yaw_deg, (sv_x, sv_y), label, color, show_coords, box)
         count += 1
         return count
 
@@ -348,7 +339,7 @@ def show_predictions_on_image(pano_root, correct, out_img, show_coords=True, sho
     true = 0
     pred = 0
     for d in correct:
-        marked = annotate_batch([d, correct[d]], cor_color)
+        marked = annotate_batch([d, correct[d]], cor_color,verbose=verbose)
 
     img.save(out_img)
     if verbose:
@@ -356,26 +347,35 @@ def show_predictions_on_image(pano_root, correct, out_img, show_coords=True, sho
 
     return
 
-def pred_pano_labels(pano_id, path_to_gsv_scrapes, num_threads=4, save_labeled_pano=False,verbose=False):
+def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, model_dir, num_threads=4, save_labeled_pano=True, verbose=False):
     ''' takes a panorama id and returns a dict of the filtered predictions'''
-    
     now = time.time()
-    make_sliding_window_crops(pano_id, path_to_gsv_scrapes, num_threads=num_threads, verbose=verbose)
+    if not os.path.exists('temp/crops'):
+        os.makedirs('temp/crops')
+    if not os.path.exists('viz'):
+        os.makedirs('viz')
+    utils.clear_dir("temp/crops")
+    make_sliding_window_crops(pano_id, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, path_to_gsv_scrapes, num_threads=num_threads, verbose=verbose)
     
-    preds = predict_from_crops("temp/", verbose=verbose)
-    preds_loc = write_predictions_to_file(preds, "temp", "labels.csv", verbose=verbose)
+    model_name = "20ep_sw_re18_2ff2"
+    model_path = os.path.join(model_dir, model_name+'.pt')
+
+    preds = predict_from_crops("temp/", model_path,verbose=verbose)
+    preds_loc = write_predictions_to_file(preds, "temp/crops", "labels.csv", verbose=verbose)
 
     pred = read_predictions_from_file(preds_loc)
     pred_dict = non_max_sup(pred, radius=150, clip_val=4.5, ignore_ind=1, verbose=verbose)
 
     if save_labeled_pano:
-        pano_root = os.path.join("panos",pano_id[:2],pano_id)
-        out_img = os.path.join("temp","viz",pano_id+"_viz.jpg")
-        show_predictions_on_image(pano_root, pred_dict, out_img, show_coords=False, show_box=True, verbose=verbose)
+        pano_root = os.path.join(path_to_gsv_scrapes,pano_id[:2],pano_id)
+        out_img = os.path.join("viz",pano_id+"_viz.jpg")
+        show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, pred_dict, out_img, show_coords=False, show_box=True, verbose=verbose)
 
-    utils.clear_dir("temp/")
+    utils.clear_dir("temp/crops")
     if verbose:
-        print "took {} seconds".format(time.time()-now)
+        print "{} took {} seconds".format(pano_id, time.time()-now)
     return pred_dict
 
-print pred_pano_labels("1a1UlhadSS_3dNtc5oI10Q", "panos/", num_threads=4, save_labeled_pano=True, verbose=False)
+if __name__ == '__main__':
+    print pred_pano_labels("1a1UlhadSS_3dNtc5oI10Q", "panos/", 13312, 6656, "models/",num_threads=12, save_labeled_pano=True, verbose=True)
+    print pred_pano_labels("4s6C3NR6YRvHCYKMM_00QQ", "panos/", 16384, 8192, "models/", num_threads=12, save_labeled_pano=True, verbose=True)

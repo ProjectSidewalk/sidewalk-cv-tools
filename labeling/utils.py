@@ -12,8 +12,8 @@ try:
 except ImportError as e:
 	from xml.etree import ElementTree as ET
 
-GSV_IMAGE_WIDTH  = 13312
-GSV_IMAGE_HEIGHT = 6656
+#GSV_IMAGE_WIDTH  = 13312
+#GSV_IMAGE_HEIGHT = 6656
 
 #special values for Seattle scrapes:
 #GSV_IMAGE_WIDTH  = 16384
@@ -243,7 +243,7 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 	return crop_size
 
 
-def make_single_crop(im, depth_txt, pano_id, sv_image_x, sv_image_y, PanoYawDeg, output_filebase):
+def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, sv_image_x, sv_image_y, PanoYawDeg, output_filebase):
 	img_filename  = output_filebase + '.jpg'
 	meta_filename = output_filebase + '.json'
 
