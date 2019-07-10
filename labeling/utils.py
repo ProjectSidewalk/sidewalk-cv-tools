@@ -87,6 +87,16 @@ def extract_panoyawdeg(path_to_metadata_xml):
 
 	return pano['projection_properties']['pano_yaw_deg']
 
+def extract_width_and_height(path_to_metadata_xml):
+	pano = {}
+	pano_xml = open(path_to_metadata_xml, 'rb')
+	tree = ET.parse(pano_xml)
+	root = tree.getroot()
+	for child in root:
+		if child.tag == 'data_properties':
+			pano[child.tag] = child.attrib
+	return (int(pano['data_properties']['image_width']) , int(pano['data_properties']['image_height']))
+
 def extract_pano_lat_lng(pano_id, path_to_gsv_scrapes=path_to_gsv_scrapes):
 	''' given a pano_id, looks up that pano's meta from scrapes
 		returns a tuple of that pano's lat and long '''
@@ -192,6 +202,7 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 	"""
 	crop_size = 0
 	try:
+		
 		depth_x = depth_txt[:, 0::3]
 		depth_y = depth_txt[:, 1::3]
 		depth_z = depth_txt[:, 2::3]
