@@ -380,8 +380,10 @@ def single_crops(crop_dir,path_dir,model_dir, verbose=False):
     '''path_to_folder = path_to_gsv_scrapes + pano_id[:2] + "/" + pano_id
     path_to_xml = path_to_folder + ".xml"
     (GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT) = utils.extract_width_and_height(path_to_xml)'''
+    print("Inside the single crops method")
     model_name = "20ep_sw_re18_2ff2"
     model_path = os.path.join(model_dir, model_name+'.pt')
+    print("Going to call predict from crops")
     preds = predict_from_crops(crop_dir,model_path,verbose=verbose)
     #print(preds)
     #utils.clear_dir("temp/crops")

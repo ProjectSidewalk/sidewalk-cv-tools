@@ -142,7 +142,7 @@ def non_max_sup(predictions, radius=1.1, clip_val=None, ignore_ind=None, verbose
             unclustered.add( Point.from_str(coords, predictions[coords]) )
 
     if verbose:
-        print "\t Clipped/ignored {} pts down to {}".format(len(predictions), len(unclustered))
+        print("\t Clipped/ignored {} pts down to {}".format(len(predictions), len(unclustered)))
     
     clustered = []
     while len(unclustered) > 0:
@@ -186,7 +186,7 @@ def non_max_sup(predictions, radius=1.1, clip_val=None, ignore_ind=None, verbose
         clustered_dict[coord] = label
 
     if verbose:
-        print "\t Clustered down to {}".format(len(clustered_dict))
+        print("\t Clustered down to {}".format(len(clustered_dict)))
 
 
     return clustered_dict

@@ -62,7 +62,9 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
         print("")
         print("Finished loading data. Got crops from {} panos.".format(len(panos)))
 
+
     model_ft = extended_resnet18(len_ex_feats=len_ex_feats)
+
     try:
         model_ft.load_state_dict(torch.load(model_path))
     except RuntimeError as e:
@@ -347,9 +349,6 @@ def show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, corr
 
 def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, model_dir, num_threads=4, save_labeled_pano=True, verbose=False):
     ''' takes a panorama id and returns a dict of the filtered predictions'''
-    path_to_folder = path_to_gsv_scrapes + pano_id[:2] + "/" + pano_id
-    path_to_xml = path_to_folder + ".xml"
-    (GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT) = utils.extract_width_and_height(path_to_xml)
     now = time.time()
     if not os.path.exists('temp/crops'):
         os.makedirs('temp/crops')
