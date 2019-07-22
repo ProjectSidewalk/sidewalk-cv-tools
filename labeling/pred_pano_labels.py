@@ -62,9 +62,7 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
         print("")
         print("Finished loading data. Got crops from {} panos.".format(len(panos)))
 
-
     model_ft = extended_resnet18(len_ex_feats=len_ex_feats)
-
     try:
         model_ft.load_state_dict(torch.load(model_path))
     except RuntimeError as e:
@@ -110,7 +108,7 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
 def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbose=False):
     pano_id = list(predictions_dict.keys())[0]
     predictions = predictions_dict[pano_id]
-    path = os.path.join(root_path, pano_id+'_'+pred_file_name)
+    path = os.path.join(root_path, pano_id+pred_file_name)
     count = 0
     with open(path, 'w') as csvfile:
         writer = csv.writer(csvfile)
@@ -313,7 +311,7 @@ def show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, corr
         if verbose:
             print "predictions: ", predictions
         coords, prediction = predictions[0],predictions[1]
-        sv_x, sv_y = map(float, coords.split(','))
+        (sv_x, sv_y) = coords
 
         if show_box:
             x = ((float(pano_yaw_deg) / 360) * GSV_IMAGE_WIDTH + sv_x) % GSV_IMAGE_WIDTH
@@ -347,14 +345,20 @@ def show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, corr
 
     return
 
-def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, model_dir, num_threads=4, save_labeled_pano=True, verbose=False):
+def pred_pano_labels(pano_id, path_to_gsv_scrapes, model_dir, num_threads=4, save_labeled_pano=True, verbose=False):
     ''' takes a panorama id and returns a dict of the filtered predictions'''
+    
     now = time.time()
     if not os.path.exists('temp/crops'):
         os.makedirs('temp/crops')
     if not os.path.exists('viz'):
         os.makedirs('viz')
     utils.clear_dir("temp/crops")
+
+
+    path_to_folder = path_to_gsv_scrapes + pano_id[:2] + "/" + pano_id
+    path_to_xml = path_to_folder + ".xml"
+    (GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT) = utils.extract_width_and_height(path_to_xml)
     make_sliding_window_crops(pano_id, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, path_to_gsv_scrapes, num_threads=num_threads, verbose=verbose)
     
     model_name = "20ep_sw_re18_2ff2"
@@ -376,6 +380,52 @@ def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HE
         print "{} took {} seconds".format(pano_id, time.time()-now)
     return pred_dict
 
+def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, num_threads=4, verbose=False):
+    ''' takes a panorama id and returns a dict of the filtered predictions'''
+    start = time.time()
+    if not os.path.exists('temp/crops'):
+        os.makedirs('temp/crops')
+    if not os.path.exists('viz'):
+        os.makedirs('viz')
+    utils.clear_dir('temp/crops')
+
+    for pano_id in pano_ids:
+        now = time.time()
+
+        pano_root = os.path.join(path_to_gsv_scrapes,pano_id[:2],pano_id)
+        path_to_xml = pano_root + ".xml"
+        (GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT) = utils.extract_width_and_height(path_to_xml)
+        make_sliding_window_crops(pano_id, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, path_to_gsv_scrapes, num_threads=num_threads, verbose=verbose)
+        
+        model_name = "20ep_sw_re18_2ff2"
+        model_path = os.path.join(model_dir, model_name+'.pt')
+
+        preds = predict_from_crops("temp/", model_path,verbose=verbose)
+        preds_loc = write_predictions_to_file(preds, path_to_gsv_scrapes+pano_id[:2], "labels.csv", verbose=verbose)
+        utils.clear_dir('temp/crops')
+        print "{} took {} seconds".format(pano_id, time.time()-now)
+    print "total time: {} seconds".format(time.time()-start)
+
+def get_pano_labels(pano_id, path_to_gsv_scrapes, b_box=None, radius=150, clip_val=4.5, save_labeled_pano=False, verbose=False):
+    pano_root = os.path.join(path_to_gsv_scrapes,pano_id[:2],pano_id)
+    (GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT) = utils.extract_width_and_height(pano_root+".xml")
+
+    pred = read_predictions_from_file(pano_root+"_labels.csv")
+    pred_dict = non_max_sup(pred, radius=radius, clip_val=clip_val, ignore_ind=1, verbose=verbose)
+
+    if b_box != None:
+        for loc in pred_dict:
+            if not utils.inside_b_box(loc,b_box):
+                pred_dict.pop(loc)
+
+    if save_labeled_pano:
+        pano_root = os.path.join(path_to_gsv_scrapes,pano_id[:2],pano_id)
+        out_img = os.path.join("viz",pano_id+"_viz.jpg")
+        show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, pred_dict, out_img, show_coords=False, show_box=True, verbose=verbose)
+    return pred_dict
+
 if __name__ == '__main__':
-    print pred_pano_labels("1a1UlhadSS_3dNtc5oI10Q", "panos/", 13312, 6656, "models/",num_threads=12, save_labeled_pano=True, verbose=True)
-    print pred_pano_labels("4s6C3NR6YRvHCYKMM_00QQ", "panos/", 16384, 8192, "models/", num_threads=12, save_labeled_pano=True, verbose=True)
+    #print pred_pano_labels("1a1UlhadSS_3dNtc5oI10Q", "panos/", "models/",num_threads=12, save_labeled_pano=True, verbose=True)
+    #print pred_pano_labels("4s6C3NR6YRvHCYKMM_00QQ", "panos/", "models/", num_threads=12, save_labeled_pano=True, verbose=True)
+    #batch_save_pano_labels(["1a1UlhadSS_3dNtc5oI10Q","4s6C3NR6YRvHCYKMM_00QQ","akOdzB_hzG0ZD9FUm65WIw","IRpiws8rEZJe-1QLdvq2yQ","M7Vsy3VP0X-9LAmkpsOz0w","nwOQfXBs2GQ74o1utUy_fg","ZdtMUd7HNldUBa4QuQYfUQ"],"panos/","models/",num_threads=12,verbose=False)
+    get_pano_labels("nwOQfXBs2GQ74o1utUy_fg","panos/",save_labeled_pano=True)

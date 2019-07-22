@@ -12,13 +12,6 @@ try:
 except ImportError as e:
 	from xml.etree import ElementTree as ET
 
-#GSV_IMAGE_WIDTH  = 13312
-#GSV_IMAGE_HEIGHT = 6656
-
-#special values for Seattle scrapes:
-#GSV_IMAGE_WIDTH  = 16384
-#GSV_IMAGE_HEIGHT = 8192
-
 label_from_int   = ('Curb Cut', 'Missing Cut', 'Obstruction', 'Sfc Problem')
 
 path_to_gsv_scrapes = "panos/"
@@ -86,6 +79,16 @@ def extract_panoyawdeg(path_to_metadata_xml):
 			pano[child.tag] = child.attrib
 
 	return pano['projection_properties']['pano_yaw_deg']
+
+def extract_width_and_height(path_to_metadata_xml):
+	pano = {}
+	pano_xml = open(path_to_metadata_xml, 'rb')
+	tree = ET.parse(pano_xml)
+	root = tree.getroot()
+	for child in root:
+		if child.tag == 'data_properties':
+			pano[child.tag] = child.attrib
+	return (int(pano['data_properties']['image_width']) , int(pano['data_properties']['image_height']))
 
 def extract_pano_lat_lng(pano_id, path_to_gsv_scrapes=path_to_gsv_scrapes):
 	''' given a pano_id, looks up that pano's meta from scrapes
@@ -190,12 +193,15 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 
 	print("Min dist was "+str(min_dist))
 	"""
+	### TEMP FIX FOR THE DEPTH CALCULATION. See Github Issue: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2 ###
+	x *= 13312/im_width
+	y *= 6656/im_width
 	crop_size = 0
 	try:
 		depth_x = depth_txt[:, 0::3]
 		depth_y = depth_txt[:, 1::3]
 		depth_z = depth_txt[:, 2::3]
-
+		
 		depth = interpolated_3d_point(x, y, depth_x, depth_y, depth_z)
 		depth_x = depth[0]
 		depth_y = depth[1]
@@ -267,7 +273,7 @@ def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, 
 		top_left_y = y - crop_height / 2
 		cropped_square = im.crop((top_left_x, top_left_y, top_left_x + crop_width, top_left_y + crop_height))
 	except (ValueError, IndexError) as e:
-
+		print e
 		predicted_crop_size = predict_crop_size_by_position(x, y, im_width, im_height)
 		crop_width = predicted_crop_size
 		crop_height = predicted_crop_size
@@ -433,3 +439,9 @@ def clear_dir(dir_to_clear):
 	for r,d,f in os.walk(dir_to_clear):
 		for filename in f:
 			os.remove(os.path.join(r, filename))
+
+def inside_b_box(pt, b_box):
+	if b_box[0] < pt[0] and b_box[2] > pt[0]:
+		if b_box[1] < pt[1] and b_box[3] > pt[1]:
+			return True
+	return False

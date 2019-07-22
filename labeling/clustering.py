@@ -38,7 +38,7 @@ class Point(object):
         return( max(self.preds) )
 
     def to_pred(self):
-        coord = "{},{}".format(self.x, self.y)
+        coord = (self.x, self.y)
         return coord, self.label()
 
 
