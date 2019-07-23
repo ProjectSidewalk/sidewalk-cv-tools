@@ -17,6 +17,8 @@ import os
 import csv 
 import time
 
+pytorch_label_from_int = ["NoCurbRamp", "Null", "Obstacle", "CurbRamp", "SurfaceProblem"]
+
 def get_data(path_to_metadata_xml):
 	pano = {}
 	pano_xml = open(path_to_metadata_xml, 'rb')
@@ -27,7 +29,7 @@ def get_data(path_to_metadata_xml):
 			pano[child.tag] = child.attrib
 	return [pano['data_properties']['image_width'], pano['data_properties']['image_height'], pano['projection_properties']['pano_yaw_deg']]
 
-def get_bounding_box(path_to_panos, pano_id, sv_x, sv_y, depth):
+def get_bounding_box(path_to_panos, pano_id, sv_x, sv_y):
 	box = None
 
 	depth_path = os.path.join(path_to_panos,pano_id[:2], pano_id + ".depth.txt")
@@ -55,11 +57,50 @@ def get_bounding_box(path_to_panos, pano_id, sv_x, sv_y, depth):
 	(x1,y1) = (x - box/2, y - box/2)
 	(x2,y2) = (x + box/2, y + box/2)
 
-	x1 = (1.0 * x1)/GSV_IMAGE_WIDTH
-	x2 = (1.0 * x2)/GSV_IMAGE_WIDTH
-	y1 = (1.0 * y1)/GSV_IMAGE_HEIGHT
-	y2 = (1.0 * y2)/GSV_IMAGE_HEIGHT
+	return (x1,y1,x2,y2)
 
-	return (x1.y1,x2,y2)
+def read_validation_data(path):
+	dict = {}
+	updated ={}
+	if os.path.exists(path):
+		with open(path) as csvfile: 
+			csvreader = csv.reader(csvfile, delimiter=',') 
+			next(csvreader)
+			for row in csvreader:
+				pano_id = row[1]
+				x = row[2]
+				y = row[3]
+				complete = pano_id + "," + str(x) + "," + str(y)
+				label = row[4]
+				if not (complete in dict):
+					dict[complete] = [label]
+				else:
+					dict[complete].append(label)
+			counter = 0
+			for key,predictions in dict.items():
+				count = [0, 0, 0, 0, 0]
+				counter += 1
+				for pred in predictions:
+					count[pytorch_label_from_int.index(pred)] += 1
+				maxval = np.argmax(count)
+				labeltype = pytorch_label_from_int[maxval]
+				updated[key] =  labeltype
+	else:
+		print("Can't find the file at " + str(path))
+	return updated
 
+def write_output(filename, rows): 
+	with open(filename, 'w+', newline='') as csvfile:
+		writer = csv.writer(csvfile)
+		for row in rows:
+			writer.writerow(row)
 
+def make_annotation_file(path_to_panos, path_to_file, final_file):
+	dict = read_validation_data(path_to_file)
+	rows = []
+	for key,pred in dict.items(): 
+		pano_id,x,y = key.split(",")
+		(x1,y1,x2,y2) = get_bounding_box(path_to_panos, pano_id, x, y)
+		name = pano_id + ".jpg"
+		row = [name, x1, y1, x2, y2,pred]
+	write_output(final_file, rows)
