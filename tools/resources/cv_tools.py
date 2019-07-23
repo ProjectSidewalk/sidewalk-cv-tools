@@ -574,9 +574,9 @@ def exact_labels(ignore_null):
 '''
 
 # 0 - pano_id, 1 - x, 2 - y, 3 - CVlabel, 4 - userlabel, 5 - confidence 
-def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary):
+def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary, number_agree):
 	new_lables = []
-	name_of_summaryfile = path_to_summary + "\\summary.csv"
+	name_of_summaryfile = path_to_summary + "\\summary" + str(number_agree) + ".csv"
 	if os.path.exists(name_of_summaryfile):
 		os.remove(name_of_summaryfile)
 	with open(name_of_summaryfile, 'w+', newline='') as csvfile:
@@ -652,7 +652,7 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
 					y = row[3]
 					complete = pano_id + "," + str(float(x)) + "," + str(float(y))
 					label = row[4]
-					ifsnot (complete in dict):
+					if not(complete in dict):
 						dict[complete] = [complete in existing_labels, label]
 					else:
 						dict[complete].append(label)
@@ -721,7 +721,7 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 	get_results()
 	rows_dict = exact_labels(ignore_null)
 	labels_list = generate_labelrows(dict_valid)
-	new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary)
+	new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary, number_agree)
 	if(verbose):
 		print("Number of new labels is " + str(len(new_labels)))
 	update_labels_already_made(new_labels,path_to_panos)
@@ -737,7 +737,7 @@ def generate_validation_data(input_data,path_to_panos,path_to_summary, number_ag
 	second = time.time()
 	if(verbose):
 		print("Program took: " + str((second - first)/60.0) + " minutes")
-	return (path_to_summary + "\\summary.csv")
+	return (path_to_summary + "\\summary" + str(number_agree) + ".csv")
 
 def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, num_threads=4, verbose=False):
 	''' takes a panorama id and returns a dict of the filtered predictions'''
