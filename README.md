@@ -133,4 +133,38 @@ A function that takes a pano id, and returns the filtered predictions.
 If you want to write your own code that uses ```pred_pano_labels```, and you need to save the labeled pano to disk, make sure to copy the ```roboto.tff``` file into the same directory as the program calling the function to avoid errors.
 
 ## Validation
+There is one main function for performing validation and it is in ```resources/cv_tools.py```
 ### generate\_validation\_data
+A function that takes in a CSV file containing user validations and generates a resulting csv file comparing the CV prediction to the user validations 
+
+**Arguments:**
+- *input\_data:* The path to the csv file that has the user labels for which validations need to be run. Please ensure that each row has the following format: ```Timestamp, pano_id, SV_X, SV_Y, label_type```. Each row can have additional information after these columns but these columns need to be present for the function to row. Please ensure that the Timestamp has the following format: ```YYYY-MM-DD HR:MM:SS(AM OR PM)``` to get valid results. The sleeping of the labels types must be among the following to get proper results from the CV model: ``` NoCurbRamp, Obstacle, CurbRamp, SurfaceProblem ```
+- *path\_to\_gsv\_scrapes:* The path to the root folder where the panoramas are stored. The folder structure should look like this:
+	```
+	[pano-root-dir]
+	├── [first 2 characters of pano_id]
+	│   ├── [pano_id].jpg
+	│   ├── [pano_id].txt
+	│   ├── [pano_id].xml
+	│   ├── [pano_id]_labels.csv
+	```
+	or in practice:
+	```
+	panos
+	├── 1a
+	│   ├── 1a1UlhadSS_3dNtc5oI10Q.jpg
+	│   ├── 1a1UlhadSS_3dNtc5oI10Q.txt
+	│   ├── 1a1UlhadSS_3dNtc5oI10Q.xml
+	│   ├── 1a1UlhadSS_3dNtc5oI10Q_labels.csv
+	```
+- *path\_to\_summary: The path to where the summary files which includes the results of the CV needs to be saved. 
+-*number\_agree (optional):* This is the minimum number of users that must all agree on the label type for any given location to the run the cv on the given location. The default is ```1```
+- *num\_threads (optional):* This is the number of threads to run while making the crops necessary for performing validations. This value will change based on the hardware specifications of each device but the default value is ```4```
+- *date\_after (optional):* If an date is specificed then the function will only user labels that have been placed after the given date (not including). The default setting is to consider all the labels in the input csv file 
+- *verbose (optional):* This enables/disables debugging printouts. The default is ```False```
+
+**Returns:**
+- The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```pano_id, SV_X, SV_Y, CVLabel, Userlabel, Confidence value``` The confidence value in this case is a percentage between 0 and 100 for the label it assigned to the given location. 
+
+**Examples:**
+```validations_seattle_runner.py``` in ```tools/samples/``` generates a summary csv file for the validations-seattle.csv in the tools folder. The validations seattle contains correctly formatted input data for user validations (just as easily could have been labels but validations are used for testing) since April 16
