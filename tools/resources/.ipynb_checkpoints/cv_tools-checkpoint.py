@@ -645,14 +645,15 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
 			for row in csvreader:
 				time_stamp = row[0]
 				date, time = time_stamp.split(" ")
-				if(date > date_after):
+				agree = (row[5] == "agree")
+				if(date > date_after and agree):
 					totalcount += 1
-					pano_id = row[1]
-					x = row[2]
-					y = row[3]
+					pano_id = row[2]
+					x = row[3]
+					y = row[4]
 					complete = pano_id + "," + str(float(x)) + "," + str(float(y))
-					label = row[4]
-					ifsnot (complete in dict):
+					label = row[6]
+					if not (complete in dict):
 						dict[complete] = [complete in existing_labels, label]
 					else:
 						dict[complete].append(label)
