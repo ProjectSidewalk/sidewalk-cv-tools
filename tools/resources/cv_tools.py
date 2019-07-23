@@ -517,7 +517,7 @@ def get_results(verbose):
 			print("Delted a old compeltelabels file")
 	if(len(os.listdir("single\\crops")) > 0):
 		single_crops("single\\","single", "models\\", verbose=True)
-	else:
+	else if(verbose):
 		print("No new crops to run CV")
 
 
@@ -574,9 +574,9 @@ def exact_labels(ignore_null):
 '''
 
 # 0 - pano_id, 1 - x, 2 - y, 3 - CVlabel, 4 - userlabel, 5 - confidence 
-def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary, number_agree):
+def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary):
 	new_lables = []
-	name_of_summaryfile = path_to_summary + "\\summary" + str(number_agree) + ".csv"
+	name_of_summaryfile = path_to_summary + "\\summary.csv"
 	if os.path.exists(name_of_summaryfile):
 		os.remove(name_of_summaryfile)
 	with open(name_of_summaryfile, 'w+', newline='') as csvfile:
@@ -718,10 +718,10 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 	dict_valid = read_validation_data(input_data, date_after, existing_labels, add_to_summary, number_agree, verbose)
 	dict_image = generate_image_date(dict_valid, existing_labels, verbose)
 	make_crop_threading(dict_image, path_to_panos, verbose, num_threads)
-	get_results()
+	get_results(verbose)
 	rows_dict = exact_labels(ignore_null)
 	labels_list = generate_labelrows(dict_valid)
-	new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary, number_agree)
+	new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary)
 	if(verbose):
 		print("Number of new labels is " + str(len(new_labels)))
 	update_labels_already_made(new_labels,path_to_panos)
@@ -737,7 +737,7 @@ def generate_validation_data(input_data,path_to_panos,path_to_summary, number_ag
 	second = time.time()
 	if(verbose):
 		print("Program took: " + str((second - first)/60.0) + " minutes")
-	return (path_to_summary + "\\summary" + str(number_agree) + ".csv")
+	return (path_to_summary + "\\summary.csv")
 
 def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, num_threads=4, verbose=False):
 	''' takes a panorama id and returns a dict of the filtered predictions'''

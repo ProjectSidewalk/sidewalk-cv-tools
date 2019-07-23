@@ -1,4 +1,7 @@
 import sys
+
+sys.path.append("resources/")
+
 import utils
 import numpy as np
 import shutil
@@ -34,7 +37,7 @@ def get_bounding_box(path_to_panos, pano_id, sv_x, sv_y):
 
 	depth_path = os.path.join(path_to_panos,pano_id[:2], pano_id + ".depth.txt")
 	pano_xml_path = os.path.join(path_to_panos,pano_id[:2], pano_id + ".xml")
-	if (!os.path.exists(depth_path) or !os.path.exists(pano_xml_path)):
+	if (not os.path.exists(depth_path) or not os.path.exists(pano_xml_path)):
 		return None
 
 	depth = None
@@ -96,6 +99,8 @@ def write_output(filename, rows):
 			writer.writerow(row)
 
 def make_annotation_file(path_to_panos, path_to_file, final_file):
+	print(os.path.exists("resources"))
+	print(os.listdir("resources"))
 	dict = read_validation_data(path_to_file)
 	rows = []
 	for key,pred in dict.items(): 

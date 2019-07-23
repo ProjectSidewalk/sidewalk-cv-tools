@@ -645,15 +645,14 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
 			for row in csvreader:
 				time_stamp = row[0]
 				date, time = time_stamp.split(" ")
-				agree = (row[5] == "agree")
-				if(date > date_after and agree):
+				if(date > date_after):
 					totalcount += 1
-					pano_id = row[2]
-					x = row[3]
-					y = row[4]
+					pano_id = row[1]
+					x = row[2]
+					y = row[3]
 					complete = pano_id + "," + str(float(x)) + "," + str(float(y))
-					label = row[6]
-					if not (complete in dict):
+					label = row[4]
+					if not(complete in dict):
 						dict[complete] = [complete in existing_labels, label]
 					else:
 						dict[complete].append(label)
@@ -722,7 +721,7 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 	get_results()
 	rows_dict = exact_labels(ignore_null)
 	labels_list = generate_labelrows(dict_valid)
-	new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary)
+	new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary, number_agree)
 	if(verbose):
 		print("Number of new labels is " + str(len(new_labels)))
 	update_labels_already_made(new_labels,path_to_panos)

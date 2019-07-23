@@ -445,8 +445,12 @@ def inside_b_box(pt, b_box):
 	return False
 
 def get_model_name():
-	for file in os.listdir("../models"): 
+	name = os.getcwd()
+	print(name)
+	print(os.listdir("models"))
+	for file in os.listdir("models"): 
 		name, ext = file.split(".")
-		if(ext == ".pt"):
+		if(ext == "pt"):
 			return name
+	print("There is no model present")
 	return "There is no model present"
