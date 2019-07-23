@@ -517,7 +517,7 @@ def get_results(verbose):
 			print("Delted a old compeltelabels file")
 	if(len(os.listdir("single\\crops")) > 0):
 		single_crops("single\\","single", "models\\", verbose=True)
-	else if(verbose):
+	elif(verbose):
 		print("No new crops to run CV")
 
 
