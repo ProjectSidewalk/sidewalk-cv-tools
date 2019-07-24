@@ -158,13 +158,18 @@ A function that takes in a CSV file containing user validations and generates a 
 	│   ├── 1a1UlhadSS_3dNtc5oI10Q_labels.csv
 	```
 - *path\_to\_summary:* The path to where the summary files which includes the results of the CV needs to be saved. 
--*number\_agree (optional):* This is the minimum number of users that must all agree on the label type for any given location to the run the cv on the given location. The default is ```1```
+- *number\_agree (optional):* This is the minimum number of users that must all agree on the label type for any given location to the run the cv on the given location. The default is ```1```
 - *num\_threads (optional):* This is the number of threads to run while making the crops necessary for performing validations. This value will change based on the hardware specifications of each device but the default value is ```4```
 - *date\_after (optional):* If an date is specificed then the function will only user labels that have been placed after the given date (not including). The default setting is to consider all the labels in the input csv file 
 - *verbose (optional):* This enables/disables debugging printouts. The default is ```False```
 
 **Returns:**
-- The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```pano_id, SV_X, SV_Y, CVLabel, Userlabel, Confidence value``` The confidence value in this case is a percentage between 0 and 100 for the label it assigned to the given location. 
+- The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```pano_id, SV_X, SV_Y, CVLabel, Userlabel, Confidence value``` The confidence value in this case is a percentage between 0 and 100 for the label it assigned to the given location. The SV_X and the SV_Y be converted to XY pixel coordinats on the panorama using this formula:
+			```
+			x = ((float(pano_yaw_deg) / 360) * GSV_IMAGE_WIDTH + sv_x) % GSV_IMAGE_WIDTH
+    		y = GSV_IMAGE_HEIGHT / 2 - sv_y
+    		```
+    		Where ```GSV_IMAGE_WIDTH``` and ```GSV_IMAGE_HEIGHT``` are the width and height of the panorama, and ```pano_yaw_deg``` is the rotation of the panorama from true north. Each of those variables are in the ```.xml``` file that came with the panorama.
 
 **Examples:**
 ```validations_seattle_runner.py``` in ```tools/samples/``` generates a summary csv file for the labels-seattle.csv in the tools folder. The validations seattle contains correctly formatted input data for user labels since April 16
