@@ -446,8 +446,6 @@ def inside_b_box(pt, b_box):
 
 def get_model_name():
 	name = os.getcwd()
-	print(name)
-	print(os.listdir("models"))
 	for file in os.listdir("models"): 
 		name, ext = file.split(".")
 		if(ext == "pt"):
