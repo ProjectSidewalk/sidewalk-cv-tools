@@ -32,7 +32,7 @@ from resnet_extended1 import extended_resnet18
 pytorch_label_from_int = ["NoCurbRamp", "Null", "Obstacle", "CurbRamp", "SurfaceProblem"]
 sys.path.append("../")
 
-def predict_from_crops(dir_containing_crops, model_path,verbose=True):
+def predict_from_crops(dir_containing_crops, model_path,verbose=False):
 	''' use the TwoFileFolder dataloader to load images and feed them
 		through the model
 		returns a dict mapping pano_ids to dicts of {coord: prediction lists}
@@ -586,7 +586,7 @@ def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary)
 				pano_id, x, y = first.split(",")
 				cvlabel, userlabel, confidence = second.split(",")
 				x = int(float(x))
-				y = int(float(x))
+				y = int(float(y))
 				row = [pano_id, x, y, cvlabel, userlabel, confidence]
 				writer.writerow(row)
 			labelrowcount = 0
@@ -665,13 +665,15 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
 				for pred in predictions:
 					count[pytorch_label_from_int.index(pred)] += 1
 				maxval = np.argmax(count)
+				if(count[maxval] < number_agree):
+					continue
 				labeltype = pytorch_label_from_int[maxval]
 				if(add): 
 					row = existing_labels[key]
 					cvlabel, confidence = row.split(",")
 					row = cvlabel + "," + labeltype + "," + confidence
 					add_to_summary[key] = row
-				elif(count[maxval] >= number_agree):
+				else:
 					updated[key] =  labeltype
 	else:
 		print("Could not find input file at " + path)
@@ -730,6 +732,8 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 		print("Number of new labels is " + str(len(new_labels)))
 	update_labels_already_made(new_labels,path_to_panos)
 	utils.clear_dir(crops)
+	if(os.path.exists(path_to_completelabels)):
+		os.remove(path_to_completelabels)
 
 def generate_validation_data(input_data,path_to_panos,path_to_summary, number_agree = 1,num_threads = 4, date_after = "2018-06-28", verbose = False):
 	if not os.path.isdir(path_to_panos):
