@@ -30,7 +30,6 @@ from TwoFileFolder import TwoFileFolder
 from resnet_extended1 import extended_resnet18
 
 pytorch_label_from_int = ["NoCurbRamp", "Null", "Obstacle", "CurbRamp", "SurfaceProblem"]
-sys.path.append("../")
 
 def predict_from_crops(dir_containing_crops, model_path,verbose=False):
 	''' use the TwoFileFolder dataloader to load images and feed them
@@ -100,7 +99,7 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
 
 	return predictions
 
-def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbose=False):
+def write_predictions_to_file(predictions_dict, root_path, pred_file_name, save_id=False, verbose=False):
 	path = os.path.join(root_path,pred_file_name)
 	if os.path.exists(path):
 		os.remove(path)
@@ -113,40 +112,14 @@ def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbo
 					if type(prediction) != list:
 						prediction = list(prediction)
 					x,y = coords.split(',')
-					row = [pano_id] + [x,y] + prediction
+					row = [x,y] + prediction
+					if save_id:
+						row = [pano_id] + [x,y] + prediction
 					writer.writerow(row)
 					count += 1
 			if verbose:
 				print("\tWrote {} predictions to {}.".format(count + 1, path))
 	return path
-
-def write_predictions_for_every_pano(root, predictions_dict, verbose=False):
-	recent = ""
-	for pano_id in predictions_dict.keys():
-		sub = pano_id[:2]
-		folder = os.path.join(root,sub)
-		if not os.path.exists(folder):
-			print("Couldn't find: " + folder)
-			continue
-		file = "completelabels_" + pano_id[:len(pano_id) - 1] + ".csv"
-		path = os.path.join(root,sub,file)
-		if os.path.exists(path):
-			os.remove(path)
-		predictions = predictions_dict[pano_id]
-		with open(path, 'w+', newline='') as csvfile:
-			writer = csv.writer(csvfile)
-			count = 0
-			for coords, prediction in predictions.items():
-				if type(prediction) != list:
-					prediction = list(prediction)
-				x,y = coords.split(',')
-				row = [x,y] + prediction
-				writer.writerow(row)
-				count += 1
-			if verbose:
-				print("\tWrote {} predictions to {}.".format(count + 1, path))
-		recent = path
-	return str(recent) 
 
 def sliding_window(pano, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, stride=100, bottom_space=1600, side_space=300, cor_thresh=70):
 	''' take in a pano and produce a set of feats, ready for writing to a file
@@ -364,7 +337,7 @@ def show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, corr
 
 	return
 
-def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, model_dir, num_threads=4, save_labeled_pano=True, verbose=False):
+def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, model_dir, model_name="20ep_sw_re18_2ff2", num_threads=4, save_labeled_pano=True, verbose=False):
 	''' takes a panorama id and returns a dict of the filtered predictions'''
 	path_to_folder = os.path.join(path_to_gsv_scrapes,pano_id[:2],pano_id)
 	path_to_xml = path_to_folder + ".xml"
@@ -378,11 +351,10 @@ def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HE
 	utils.clear_dir(temp)
 	make_sliding_window_crops(pano_id, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, path_to_gsv_scrapes, num_threads=num_threads, verbose=verbose)
 	
-	model_name = utils.get_model_name()
 	model_path = os.path.join(model_dir, model_name+'.pt')
 
-	preds = predict_from_crops("temp", model_path,verbose=verbose)
-	preds_loc = write_predictions_for_every_pano(path_to_gsv_scrapes, preds, verbose=verbose)
+	preds = predict_from_crops("temp", model_path, verbose=verbose)
+	preds_loc = write_predictions_to_file(preds, os.path.join(path_to_gsv_scrapes,pano_id[:2]), pano_id+"_labels.csv", verbose=verbose)
 	if(len(preds_loc) == 0): 
 		return None
 	pred = read_predictions_from_file(preds_loc)
@@ -747,7 +719,7 @@ def generate_validation_data(input_data,path_to_panos,path_to_summary, number_ag
 		print("Program took: " + str((second - first)/60.0) + " minutes")
 	return (os.path.join(path_to_summary,"summary.csv"))
 
-def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, num_threads=4, verbose=False):
+def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, model_name="20ep_sw_re18_2ff2", num_threads=4, verbose=False):
 	''' takes a panorama id and returns a dict of the filtered predictions'''
 	start = time.time()
 	crops = os.path.join('temp','crops')
@@ -765,11 +737,10 @@ def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, num_threads
 		(GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT) = utils.extract_width_and_height(path_to_xml)
 		make_sliding_window_crops(pano_id, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, path_to_gsv_scrapes, num_threads=num_threads, verbose=verbose)
 		
-		model_name = "20ep_sw_re18_2ff2"
 		model_path = os.path.join(model_dir, model_name+'.pt')
 
 		preds = predict_from_crops("temp", model_path,verbose=verbose)
-		preds_loc = write_predictions_to_file(preds, path_to_gsv_scrapes+pano_id[:2], "labels.csv", verbose=verbose)
+		preds_loc = write_predictions_to_file(preds, os.path.join(path_to_gsv_scrapes,pano_id[:2]), pano_id+"_labels.csv", verbose=verbose)
 		utils.clear_dir(crops)
 		print("{} took {} seconds".format(pano_id, time.time()-now))
 	print("total time: {} seconds".format(time.time()-start))

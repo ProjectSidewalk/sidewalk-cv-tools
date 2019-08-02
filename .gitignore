@@ -1,2 +1,8 @@
 .DS_Store
 *.pyc
+.vscode
+__pycache__
+tools/single
+tools/temp
+tools/samples/single
+tools/samples/temp
