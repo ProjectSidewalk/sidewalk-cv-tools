@@ -64,18 +64,10 @@ def create_validation_from_csv(csv_filename, output_filename, verbose = False):
 	if not os.path.exists(csv_filename): 
 		print("Could not find specified csv file: " + str(csv_filename))
 		return 
-	user_validations = pd.read_csv(csv_filename, header=None)
-	user_validations.rename(columns= {
-		0: 'user_id',
-		1: 'time_stamp',
-		2: 'label_id',
-		3: 'pano_id',
-		4: 'sv_x',
-		5: 'sv_y',
-		6: 'agree_user',
-		7: 'label_type_user'
-	}, inplace=True)
+	user_validations = pd.read_csv(user_validations, skiprows = 1)
+	user_validations.columns = ['user_id', 'time_stamp', 'label_id', 'pano_id', 'sv_x', 'sv_y', 'agree_user', 'label_type_user']
 	user_validations = user_validations[user_validations['agree_user'] != "unclear"]
+	user_validations = user_validations[user_validations['pano_id'] != "#NAME?"]
 	user_validations.set_index(['pano_id', 'sv_x', 'sv_y'], inplace=True)
 	if verbose: 
 		print("Shape of user validations dataframe is " + str(user_validations.shape))
