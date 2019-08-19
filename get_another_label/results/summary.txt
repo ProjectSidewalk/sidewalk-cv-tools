@@ -1,0 +1,78 @@
+=============================================================
+====== ESTIMATION SUMMARY ===================================
+=============================================================
+
+=== Parameters ===
+Input File: workers-validations.txt
+Categories File: categories.txt
+Gold Labels File: initial.txt
+Cost File: N/A
+Evaluation File: N/A
+
+=== Data ===
+Categories: 8
+Objects in Data Set: 15606
+Workers in Data Set: 337
+Labels Assigned by Workers: 22597
+
+=== Data Quality ===
+[DS_Pr[Not-NoCurbRamp]] DS estimate for prior probability of category Not-NoCurbRamp: 0.0374
+[DS_Pr[Obstacle]] DS estimate for prior probability of category Obstacle: 0.0486
+[DS_Pr[CurbRamp]] DS estimate for prior probability of category CurbRamp: 0.3192
+[DS_Pr[Not-CurbRamp]] DS estimate for prior probability of category Not-CurbRamp: 0.0362
+[DS_Pr[Not-SurfaceProblem]] DS estimate for prior probability of category Not-SurfaceProblem: 0.0450
+[DS_Pr[Not-Obstacle]] DS estimate for prior probability of category Not-Obstacle: 0.0488
+[DS_Pr[NoCurbRamp]] DS estimate for prior probability of category NoCurbRamp: 0.2541
+[DS_Pr[SurfaceProblem]] DS estimate for prior probability of category SurfaceProblem: 0.2108
+[MV_Pr[Not-NoCurbRamp]] Majority Vote estimate for prior probability of category Not-NoCurbRamp: 0.0424
+[MV_Pr[Obstacle]] Majority Vote estimate for prior probability of category Obstacle: 0.0917
+[MV_Pr[CurbRamp]] Majority Vote estimate for prior probability of category CurbRamp: 0.2775
+[MV_Pr[Not-CurbRamp]] Majority Vote estimate for prior probability of category Not-CurbRamp: 0.0384
+[MV_Pr[Not-SurfaceProblem]] Majority Vote estimate for prior probability of category Not-SurfaceProblem: 0.0892
+[MV_Pr[Not-Obstacle]] Majority Vote estimate for prior probability of category Not-Obstacle: 0.0721
+[MV_Pr[NoCurbRamp]] Majority Vote estimate for prior probability of category NoCurbRamp: 0.2276
+[MV_Pr[SurfaceProblem]] Majority Vote estimate for prior probability of category SurfaceProblem: 0.1611
+[DataCost_Estm_DS_Exp] Estimated classification cost (DS_Exp metric): 0.2512
+[DataCost_Estm_MV_Exp] Estimated classification cost (MV_Exp metric): 0.0135
+[DataCost_Estm_DS_ML] Estimated classification cost (DS_ML metric): 0.1846
+[DataCost_Estm_MV_ML] Estimated classification cost (MV_ML metric): 0.0123
+[DataCost_Estm_DS_Min] Estimated classification cost (DS_Min metric): 0.1846
+[DataCost_Estm_MV_Min] Estimated classification cost (MV_Min metric): 0.0123
+[DataCost_Estm_NoVote_Exp] Baseline classification cost (random spammer): 0.7796
+[DataCost_Estm_NoVote_Min] Baseline classification cost (strategic spammer): 0.6808
+[DataCost_Eval_DS_ML] Actual classification cost for EM, maximum likelihood classification: 0.1184
+[DataCost_Eval_MV_ML] Actual classification cost for majority vote classification: 0.0712
+[DataCost_Eval_DS_Min] Actual classification cost for EM, min-cost classification: 0.1184
+[DataCost_Eval_MV_Min] Actual classification cost for naive min-cost classification: 0.0712
+[DataCost_Eval_DS_Soft] Actual classification cost for EM, soft-label classification: 0.1325
+[DataCost_Eval_MV_Soft] Actual classification cost for naive soft-label classification: 0.0720
+[DataQuality_Estm_DS_ML] Estimated data quality, EM algorithm, maximum likelihood: 72.88%
+[DataQuality_Estm_MV_ML] Estimated data quality, naive majority label: 98.19%
+[DataQuality_Estm_DS_Exp] Estimated data quality, EM algorithm, soft label: 63.09%
+[DataQuality_Estm_MV_Exp] Estimated data quality, naive soft label: 98.02%
+[DataQuality_Estm_DS_Min] Estimated data quality, EM algorithm, mincost: 72.88%
+[DataQuality_Estm_MV_Min] Estimated data quality, naive mincost label: 98.19%
+[DataQuality_Eval_DS_ML] Actual data quality, EM algorithm, maximum likelihood: 82.61%
+[DataQuality_Eval_MV_ML] Actual data quality, naive majority label: 89.44%
+[DataQuality_Eval_DS_Min] Actual data quality, EM algorithm, mincost: 82.61%
+[DataQuality_Eval_MV_Min] Actual data quality, naive mincost label: 89.55%
+[DataQuality_Eval_DS_Soft] Actual data quality, EM algorithm, soft label: 80.54%
+[DataQuality_Eval_MV_Soft] Actual data quality, naive soft label: 89.42%
+
+=== Worker Quality ===
+[WorkerQuality_Estm_DS_Exp_n] Estimated worker quality (non-weighted, DS_Exp metric): -41.50%
+[WorkerQuality_Estm_DS_Exp_w] Estimated worker quality (weighted, DS_Exp metric): -79.58%
+[WorkerQuality_Estm_DS_ML_n] Estimated worker quality (non-weighted, DS_ML metric): 42.61%
+[WorkerQuality_Estm_DS_ML_w] Estimated worker quality (weighted, DS_ML metric): 48.46%
+[WorkerQuality_Estm_DS_Min_n] Estimated worker quality (non-weighted, DS_Min metric): 42.61%
+[WorkerQuality_Estm_DS_Min_w] Estimated worker quality (weighted, DS_Min metric): 48.46%
+[WorkerQuality_Eval_DS_Exp_n] Actual worker quality (non-weighted, DS_Exp metric): 57.04%
+[WorkerQuality_Eval_DS_Exp_w] Actual worker quality (weighted, DS_Exp metric): 57.34%
+[WorkerQuality_Eval_DS_ML_n] Actual worker quality (non-weighted, DS_ML metric): 77.32%
+[WorkerQuality_Eval_DS_ML_w] Actual worker quality (weighted, DS_ML metric): 77.42%
+[WorkerQuality_Eval_DS_Min_n] Actual worker quality (non-weighted, DS_Min metric): 77.32%
+[WorkerQuality_Eval_DS_Min_w] Actual worker quality (weighted, DS_Min metric): 77.42%
+[Number of labels] Labels per worker: 67.0534
+[Gold Tests] Gold tests per worker: 22.4214
+
+=============================================================

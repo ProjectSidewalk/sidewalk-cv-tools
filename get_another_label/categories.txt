@@ -1,0 +1,8 @@
+CurbRamp
+Not-CurbRamp
+NoCurbRamp
+Not-NoCurbRamp
+SurfaceProblem
+Not-SurfaceProblem
+Obstacle
+Not-Obstacle
