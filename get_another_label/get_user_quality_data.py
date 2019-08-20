@@ -7,14 +7,16 @@ import random
 sys.path.append("resources/")
 from cv_tools import generate_validation_data
 
-def run_base_script(worker_file, categories_file): 
+def run_base_script(worker_file, categories_file, verbose): 
 	name = "bin\\get-another-label.bat --categories " + str(categories_file) + " --input " + str(worker_file)
-	print(name)
+	if verbose: 
+		print(name)
 	os.system(name)
 
-def run_complete_scrip(worker_file, categories_file, golden_file, eval_file): 
+def run_complete_scrip(worker_file, categories_file, golden_file, eval_file, verbose): 
 	name = "bin\\get-another-label.bat --gold " + str(golden_file) + " --eval " + str(eval_file) + " --categories " + str(categories_file) + " --input " + str(worker_file)
-	print(name)
+	if verbose:
+		print(name)
 	os.system(name)
 
 def process_cv_predictions(worker_data_file, cv_predictions_file, username = "Computer-Vision-Model"): 
@@ -163,6 +165,6 @@ def run_get_another_label(input_file, path_to_panos, categories_file, ground_fil
 			print("Location of summary file " + str(summary_file))
 		process_cv_predictions(output_file, summary_file) 
 	if ground_truth:
-		run_complete_scrip(output_file, categories_file,golden_file, eval_file)
+		run_complete_scrip(output_file, categories_file,golden_file, eval_file, verbose)
 	else:
-		run_base_script(output_file, categories_file)
+		run_base_script(output_file, categories_file, verbose)
