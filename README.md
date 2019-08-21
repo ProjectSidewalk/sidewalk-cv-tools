@@ -164,7 +164,8 @@ A function that takes in a CSV file containing user validations and generates a 
 - *verbose (optional):* This enables/disables debugging printouts. The default is ```False```
 
 **Returns:**
-- The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```label_id, pano_id, SV_X, SV_Y, CVLabel,CVLabel_Confidence, UserLabel, UserLabel_Confidence``` The user label confidence is the confidence value that the cv gave for the user label type while the CV Label Confidence is the confidence value for the label type that the CV think the object is most likely to be and may often overlap with the user label type. The confidence values are the raw confidence values (can be positive or negative) rounded to 2 decimal places. The SV_X and the SV_Y be converted to XY pixel coordinats on the panorama using this formula:
+- The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```label_id, pano_id, SV_X, SV_Y, CVLabel,CVLabel_Confidence, UserLabel, UserLabel_Confidence``` The user label confidence is the confidence value that the cv gave for the user label type while the CV Label Confidence is the confidence value for the label type that the CV think the object is most likely to be and may often overlap with the user label type. The confidence values are the raw confidence values (can be positive or negative) rounded to 2 decimal places. An example row looks like ```9,	4s6C3NR6YRvHCYKMM_00QQ,3400,-400,CurbRamp,0.95,Obstacle,0.77```
+ The SV_X and the SV_Y be converted to XY pixel coordinats on the panorama using this formula:
 			```
 			x = ((float(pano_yaw_deg) / 360) * GSV_IMAGE_WIDTH + sv_x) % GSV_IMAGE_WIDTH
     		y = GSV_IMAGE_HEIGHT / 2 - sv_y
