@@ -27,9 +27,13 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.optim import lr_scheduler
 from TwoFileFolder import TwoFileFolder
-from resnet_extended1 import extended_resnet18
+from resnet_extended1 import extended_resnet18 
+import pandas as pd
+import numpy as np
+import math
 
 pytorch_label_from_int = ["NoCurbRamp", "Null", "Obstacle", "CurbRamp", "SurfaceProblem"]
+sys.path.append("../")
 
 def predict_from_crops(dir_containing_crops, model_path,verbose=False):
 	''' use the TwoFileFolder dataloader to load images and feed them
@@ -44,6 +48,7 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
 		])
 	if verbose:
 		print("Building dataset and loading model...")
+	
 	device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 	image_dataset = TwoFileFolder(dir_containing_crops, meta_to_tensor_version=2, transform=data_transform)
 	dataloader    = torch.utils.data.DataLoader(image_dataset, batch_size=4, shuffle=True, num_workers=4)
@@ -57,7 +62,6 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
 		print("Using dataloader that supplies {} extra features.".format(len_ex_feats))
 		print("")
 		print("Finished loading data. Got crops from {} panos.".format(len(panos)))
-
 	model_ft = extended_resnet18(len_ex_feats=len_ex_feats)
 	try:
 		model_ft.load_state_dict(torch.load(model_path))
@@ -99,7 +103,7 @@ def predict_from_crops(dir_containing_crops, model_path,verbose=False):
 
 	return predictions
 
-def write_predictions_to_file(predictions_dict, root_path, pred_file_name, save_id=False, verbose=False):
+def write_predictions_to_file(predictions_dict, root_path, pred_file_name, verbose=False, save_id = True):
 	path = os.path.join(root_path,pred_file_name)
 	if os.path.exists(path):
 		os.remove(path)
@@ -112,9 +116,10 @@ def write_predictions_to_file(predictions_dict, root_path, pred_file_name, save_
 					if type(prediction) != list:
 						prediction = list(prediction)
 					x,y = coords.split(',')
-					row = [x,y] + prediction
-					if save_id:
+					if(save_id == True):
 						row = [pano_id] + [x,y] + prediction
+					else:
+						row = [x,y] + prediction
 					writer.writerow(row)
 					count += 1
 			if verbose:
@@ -337,7 +342,7 @@ def show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, corr
 
 	return
 
-def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, model_dir, model_name="20ep_sw_re18_2ff2", num_threads=4, save_labeled_pano=True, verbose=False):
+def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, model_dir, num_threads=4, save_labeled_pano=True, verbose=False):
 	''' takes a panorama id and returns a dict of the filtered predictions'''
 	path_to_folder = os.path.join(path_to_gsv_scrapes,pano_id[:2],pano_id)
 	path_to_xml = path_to_folder + ".xml"
@@ -351,10 +356,11 @@ def pred_pano_labels(pano_id, path_to_gsv_scrapes, GSV_IMAGE_WIDTH, GSV_IMAGE_HE
 	utils.clear_dir(temp)
 	make_sliding_window_crops(pano_id, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, path_to_gsv_scrapes, num_threads=num_threads, verbose=verbose)
 	
+	model_name = utils.get_model_name()
 	model_path = os.path.join(model_dir, model_name+'.pt')
 
-	preds = predict_from_crops("temp", model_path, verbose=verbose)
-	preds_loc = write_predictions_to_file(preds, os.path.join(path_to_gsv_scrapes,pano_id[:2]), pano_id+"_labels.csv", verbose=verbose)
+	preds = predict_from_crops("temp", model_path,verbose=verbose)
+	preds_loc = write_predictions_for_every_pano(path_to_gsv_scrapes, preds, verbose=verbose)
 	if(len(preds_loc) == 0): 
 		return None
 	pred = read_predictions_from_file(preds_loc)
@@ -454,41 +460,40 @@ def make_crop(predictions, pano, path_to_panos):
 			m += 1
 	return m
 
-def thread_crop_image(items, path_to_panos, queue):
-	count = 0
-	for row in items: 
+crops_total = 0
+
+def thread_crop_image(queue, path_to_panos):
+	global crops_total
+	while not queue.empty():
+		row = queue.get()
 		pano_id = row.pop(0)
-		count += make_crop(row, pano_id, path_to_panos)
-	queue.put(count)
+		crops_total += make_crop(row, pano_id, path_to_panos)
+		t = "\rCrops made so far is " + str(crops_total)
+		sys.stdout.write(t)
+		sys.stdout.flush()
 
 def make_crop_threading(dict_image, path_to_panos, verbose, num_threads): 
 	q = Queue()
-	crops_q = [[] for i in range(num_threads)]
 	count = 0
 	for pano_id, coords in dict_image.items():
 		complete = [pano_id] + coords
-		crops_q[count % num_threads].append(complete)
+		q.put(complete)
 		count += 1
 	threads = []
 	for i in range(num_threads):
-		t = threading.Thread(target = thread_crop_image, args=(crops_q[i], path_to_panos,q, ))
+		t = threading.Thread(target = thread_crop_image, args=(q, path_to_panos, ))
 		threads.append(t)
 		t.start()
 	for proc in threads:
 		proc.join()
-	total = 0 
-	while not q.empty():
-		total += q.get()
-	if(verbose):
-		print("Created " + str(total) + " new crops")
 
 path_to_completelabels = os.path.join("single", "completelabels.csv")
 def get_results(verbose):
-	if os.path.exists(path_to_completelabels):
-		os.remove(path_to_completelabels)
+	if(len(os.listdir(os.path.join("single", "crops"))) > 0):
+		if os.path.exists(path_to_completelabels):
+			os.remove(path_to_completelabels)
 		if(verbose):
 			print("Delted a old compeltelabels file")
-	if(len(os.listdir(os.path.join("single", "crops"))) > 0):
 		single_crops("single","single", "models", verbose=True)
 	elif(verbose):
 		print("No new crops to run CV")
@@ -515,10 +520,8 @@ def read_complete_file(ignore_null):
 				value.append(pytorch_label_from_int[max - 3])
 				if (max < 0 or max >= len(row)):
 					print(str(max) + " < " + str(len(row)))
-				percentage = round(100.0 * (float(row[max]) + 10.0)/20.0)
-				value.append(percentage)
-				#print(str(row[max]) + " -> " + str(percentage))
-				#print(value) 
+				percentage = round(float(row[max]), 2)
+				value.append(percentage) 
 				rows.append(value)
 	return rows
 
@@ -531,7 +534,7 @@ def exact_labels(ignore_null):
 		x = row[1]
 		y = row[2]
 		label = row[3]
-		percentage = int(float(row[4]))
+		percentage = float(row[4])
 		key = file_name + "," + str(x) + "," + str(y)
 		result = label + "," + str(percentage)
 		dict[key] = result
@@ -546,37 +549,64 @@ def exact_labels(ignore_null):
 6 - label_type
 '''
 
+def read_complete(): 
+	df = pd.read_csv(path_to_completelabels, header = None)
+	df.columns = ["pano_id", "sv_x", "sv_y", "NoCurbRamp", "Null", "Obstacle", "CurbRamp", "SurfaceProblem"]
+	df.set_index(['pano_id', 'sv_x', 'sv_y'], inplace=True)
+	return df 
+
+def sigmoind_function(score): 
+	return 1.0/(1.0 + math.exp(0.4 * score))
+
+user_data = {}
+
 # 0 - pano_id, 1 - x, 2 - y, 3 - CVlabel, 4 - userlabel, 5 - confidence 
 def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary):
-	new_lables = []
+	global user_data
+	new_lables = [] 
+	raw_values = None
+	if os.path.exists(path_to_completelabels): 
+		raw_values = read_complete()
+	title = ["label_id", "pano_id", "sv_x", "sv_y", "cv_label", "cv_confidence", "user_label", "user_label_confidence"]
 	name_of_summaryfile = os.path.join(path_to_summary,"summary.csv")
 	if os.path.exists(name_of_summaryfile):
 		os.remove(name_of_summaryfile)
 	with open(name_of_summaryfile, 'w+', newline='') as csvfile:
 			writer = csv.writer(csvfile)
-			for first, second in add_to_summary.items():
+			writer.writerow(title)
+			for first, value in add_to_summary.items():
 				pano_id, x, y = first.split(",")
-				cvlabel, userlabel, confidence = second.split(",")
 				x = int(float(x))
 				y = int(float(y))
-				row = [pano_id, x, y, cvlabel, userlabel, confidence]
-				writer.writerow(row)
-			labelrowcount = 0
+				values = value[2:]
+				cvlabel = value[0]
+				confidence = value[1]
+				complete = pano_id + "," + str(float(x)) + "," + str(float(y))
+				for label_id, userlabel in user_data[complete]:
+					value = float(values[pytorch_label_from_int.index(userlabel)])
+					row = [label_id, pano_id, x, y, cvlabel, confidence, userlabel, value]
+					writer.writerow(row)
 			for labelrow in labels_list:
 				pano_id = labelrow[0]
-				x = labelrow[1]
-				y = labelrow[2]
-				complete = pano_id + "," + str(float(x)) + "," + str(float(y))
+				x = float(labelrow[1])
+				y = float(labelrow[2])
+				complete = pano_id + "," + str(x) + "," + str(y)
 				if(complete in rows_dict and complete not in add_to_summary):
+					first_label = labelrow[3]
+					index = (pano_id + "_", x, y)
+					values = raw_values.loc[index, :]
 					cv_respone = rows_dict[complete]
 					label,confidence  = cv_respone.split(",")
-					value = [pano_id, x, y] + [label, labelrow[3]] + [confidence]
-					writer.writerow(value)
-					value.pop(4)
-					new_lables.append(value)
-					labelrowcount += 1
+					for label_id, user_label in user_data[complete]:
+						user_confidence = round(float(values[user_label]), 2)
+						value = [label_id, pano_id, int(x), int(y)] + [label, confidence] 
+						display = value.copy() + [user_label, user_confidence]
+						writer.writerow(display)
+						raw_stuff = list(values)
+						rounded_stuff = [round(float(item), 2) for item in raw_stuff] 
+						value = value[1:] + rounded_stuff			
+						new_lables.append(value)			
 	return new_lables
-
 
 def generate_image_date(dict_valid, existing_labels, verbose): 
 	dict_image = {}
@@ -608,6 +638,7 @@ def generate_labelrows(dict_row):
 
 #Time stamp, Pano_Id, X, Y, label type
 def read_validation_data(path, date_after, existing_labels, add_to_summary, number_agree, verbose):
+	global user_data
 	dict = {}
 	updated ={}
 	totalcount = 0
@@ -620,15 +651,18 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
 				date, time = time_stamp.split(" ")
 				if(date > date_after):
 					totalcount += 1
-					pano_id = row[1]
-					x = row[2]
-					y = row[3]
+					label_id = row[1]
+					pano_id = row[2]
+					x = row[3]
+					y = row[4]
 					complete = pano_id + "," + str(float(x)) + "," + str(float(y))
-					label = row[4]
+					label = row[5]
 					if not(complete in dict):
-						dict[complete] = [complete in existing_labels, label]
+						dict[complete] = [complete in existing_labels, label] 
+						user_data[complete] =[(label_id, label)]
 					else:
 						dict[complete].append(label)
+						user_data[complete].append((label_id, label))
 			counter = 0
 			for key,predictions in dict.items():
 				count = [0, 0, 0, 0, 0]
@@ -642,8 +676,6 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
 				labeltype = pytorch_label_from_int[maxval]
 				if(add): 
 					row = existing_labels[key]
-					cvlabel, confidence = row.split(",")
-					row = cvlabel + "," + labeltype + "," + confidence
 					add_to_summary[key] = row
 				else:
 					updated[key] =  labeltype
@@ -653,8 +685,6 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
 		print("Already have results for " + str(len(add_to_summary)) + " items")
 		print("Need to get results for: " + str(len(updated)))
 	return updated
-
-#pano_id, x, y, cvlabel, confidence
 
 def labels_already_made(path_to_panos):
 	dict = {}
@@ -669,11 +699,9 @@ def labels_already_made(path_to_panos):
 					pano_id = row[0]
 					x = row[1]
 					y = row[2]
-					cvlabel = row[3]
-					confidence = row[4]
 					potential = pano_id + "," + str(float(x)) + "," + str(float(y))
-					value = cvlabel + "," + confidence
-					dict[potential] = value
+					values = row[3:]
+					dict[potential] = values
 	return dict
 # 0 - pano_id, 1 - x, 2 - y, 3 - CVlabel, 4 - confidence 
 def update_labels_already_made(new_lables,path_to_panos):
@@ -704,8 +732,6 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 		print("Number of new labels is " + str(len(new_labels)))
 	update_labels_already_made(new_labels,path_to_panos)
 	utils.clear_dir(crops)
-	if(os.path.exists(path_to_completelabels)):
-		os.remove(path_to_completelabels)
 
 def generate_validation_data(input_data,path_to_panos,path_to_summary, number_agree = 1,num_threads = 4, date_after = "2018-06-28", verbose = False):
 	if not os.path.isdir(path_to_panos):
@@ -719,7 +745,8 @@ def generate_validation_data(input_data,path_to_panos,path_to_summary, number_ag
 		print("Program took: " + str((second - first)/60.0) + " minutes")
 	return (os.path.join(path_to_summary,"summary.csv"))
 
-def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, model_name="20ep_sw_re18_2ff2", num_threads=4, verbose=False):
+
+def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, num_threads=4, verbose=False):
 	''' takes a panorama id and returns a dict of the filtered predictions'''
 	start = time.time()
 	crops = os.path.join('temp','crops')
@@ -737,10 +764,11 @@ def batch_save_pano_labels(pano_ids, path_to_gsv_scrapes, model_dir, model_name=
 		(GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT) = utils.extract_width_and_height(path_to_xml)
 		make_sliding_window_crops(pano_id, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, path_to_gsv_scrapes, num_threads=num_threads, verbose=verbose)
 		
+		model_name = "20ep_sw_re18_2ff2"
 		model_path = os.path.join(model_dir, model_name+'.pt')
 
 		preds = predict_from_crops("temp", model_path,verbose=verbose)
-		preds_loc = write_predictions_to_file(preds, os.path.join(path_to_gsv_scrapes,pano_id[:2]), pano_id+"_labels.csv", verbose=verbose)
+		preds_loc = write_predictions_for_every_pano(preds, path_to_gsv_scrapes+pano_id[:2], "labels.csv", verbose=verbose)
 		utils.clear_dir(crops)
 		print("{} took {} seconds".format(pano_id, time.time()-now))
 	print("total time: {} seconds".format(time.time()-start))
