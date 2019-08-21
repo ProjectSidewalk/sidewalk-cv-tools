@@ -138,7 +138,7 @@ There is one main function for performing validation and it is in ```resources/c
 A function that takes in a CSV file containing user validations and generates a resulting csv file comparing the CV prediction to the user validations 
 
 **Arguments:**
-- *input\_data:* The path to the csv file that has the user labels for which validations need to be run. Please ensure that each row has the following format: ```Timestamp, pano_id, SV_X, SV_Y, label_type```. Each row can have additional information after these columns but these columns need to be present for the function to row. Please ensure that the Timestamp has the following format: ```YYYY-MM-DD HR:MM:SS(AM OR PM)``` to get valid results. The sleeping of the labels types must be among the following to get proper results from the CV model: ``` NoCurbRamp, Obstacle, CurbRamp, SurfaceProblem ```. An example row would look like this: ```2019-04-16 2:48:37AM, treyXG0iNYWO-B5UX1nRbw,3912,-276,CurbRamp```
+- *input\_data:* The path to the csv file that has the user labels for which validations need to be run. Please ensure that each row has the following format: ```Timestamp, label_id, pano_id, SV_X, SV_Y, label_type```. Each row can have additional information after these columns but these columns need to be present for the function to row. Please ensure that the Timestamp has the following format: ```YYYY-MM-DD HR:MM:SS(AM OR PM)``` to get valid results. The label types must be among the following to get proper results from the CV model: ``` NoCurbRamp, Obstacle, CurbRamp, SurfaceProblem ```. An example row would look like this: ```2019-04-16 2:48:37AM, 3215, treyXG0iNYWO-B5UX1nRbw,3912,-276,CurbRamp```. Please also make sure to include column headers for otherwise the first item in the csv file will be ignored from getting the results. 
 - *path\_to\_gsv\_scrapes:* The path to the root folder where the panoramas are stored. The folder structure should look like this:
 	```
 	[pano-root-dir]
@@ -164,7 +164,7 @@ A function that takes in a CSV file containing user validations and generates a 
 - *verbose (optional):* This enables/disables debugging printouts. The default is ```False```
 
 **Returns:**
-- The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```pano_id, SV_X, SV_Y, CVLabel, Userlabel, Confidence value``` The confidence value in this case is a percentage between 0 and 100 for the label it assigned to the given location. The SV_X and the SV_Y be converted to XY pixel coordinats on the panorama using this formula:
+- The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```label_id, pano_id, SV_X, SV_Y, CVLabel,CVLabel_Confidence, UserLabel, UserLabel_Confidence``` The user label confidence is the confidence value that the cv gave for the user label type while the CV Label Confidence is the confidence value for the label type that the CV think the object is most likely to be and may often overlap with the user label type. The confidence values are the raw confidence values (can be positive or negative) rounded to 2 decimal places. The SV_X and the SV_Y be converted to XY pixel coordinats on the panorama using this formula:
 			```
 			x = ((float(pano_yaw_deg) / 360) * GSV_IMAGE_WIDTH + sv_x) % GSV_IMAGE_WIDTH
     		y = GSV_IMAGE_HEIGHT / 2 - sv_y
