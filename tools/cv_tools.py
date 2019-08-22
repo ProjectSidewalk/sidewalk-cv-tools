@@ -32,6 +32,7 @@ import pandas as pd
 import numpy as np
 import math
 
+#0 - pano_id, 1 - sv_x, 2 - sv_y, 3- NoCurbRamp, 
 pytorch_label_from_int = ["NoCurbRamp", "Null", "Obstacle", "CurbRamp", "SurfaceProblem"]
 sys.path.append("../")
 
@@ -558,6 +559,11 @@ def read_complete():
 def sigmoind_function(score): 
 	return 1.0/(1.0 + math.exp(0.4 * score))
 
+def get_score(cv_label, cv_confidence, user_label, user_confidence): 
+	if cv_label == user_label: 
+		return 0.75 * sigmoind_function(cv_confidence)
+	return 0.
+
 user_data = {}
 
 # 0 - pano_id, 1 - x, 2 - y, 3 - CVlabel, 4 - userlabel, 5 - confidence 
@@ -738,7 +744,7 @@ def generate_validation_data(input_data,path_to_panos,path_to_summary, number_ag
 		print("There is no such directory for path to panos")
 		return "Couldn't generate a summary file"
 	first = time.time()
-	ignore_null = True 
+	ignore_null = False 
 	generate_data(input_data, date_after, path_to_panos, ignore_null, number_agree, path_to_summary, verbose, num_threads)
 	second = time.time()
 	if(verbose):
