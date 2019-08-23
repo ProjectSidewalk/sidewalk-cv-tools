@@ -741,6 +741,8 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 		print("Number of new labels is " + str(len(new_labels)))
 	update_labels_already_made(new_labels,path_to_panos)
 	utils.clear_dir(crops)
+	if os.path.exists(path_to_completelabels):
+		os.remove(path_to_completelabels)
 
 def generate_validation_data(input_data,path_to_panos,path_to_summary, number_agree = 1,num_threads = 4, date_after = "2018-06-28", verbose = False):
 	if not os.path.isdir(path_to_panos):
