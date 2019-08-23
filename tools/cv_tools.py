@@ -556,13 +556,14 @@ def read_complete():
 	df.set_index(['pano_id', 'sv_x', 'sv_y'], inplace=True)
 	return df 
 
-def sigmoind_function(score): 
-	return 1.0/(1.0 + math.exp(0.4 * score))
+def get_sigmoid(x): 
+	return 1.0/(1.0 + math.exp(0.5 * (float(x) - 2.5)))
 
-def get_score(cv_label, cv_confidence, user_label, user_confidence): 
-	if cv_label == user_label: 
-		return 0.75 * sigmoind_function(cv_confidence)
-	return 0.
+def get_score(cv_label,cv_confidence, user_label, user_confidence): 
+	if user_label != cv_label: 
+		return 0.5 + 0.5 * (get_sigmoid(user_confidence) ** 2)
+	else:
+		return get_sigmoid(cv_confidence)
 
 user_data = {}
 
@@ -573,7 +574,7 @@ def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary)
 	raw_values = None
 	if os.path.exists(path_to_completelabels): 
 		raw_values = read_complete()
-	title = ["label_id", "pano_id", "sv_x", "sv_y", "cv_label", "cv_confidence", "user_label", "user_label_confidence"]
+	title = ["label_id", "pano_id", "sv_x", "sv_y", "cv_label", "cv_confidence", "user_label", "user_label_confidence", "priority_score"]
 	name_of_summaryfile = os.path.join(path_to_summary,"summary.csv")
 	if os.path.exists(name_of_summaryfile):
 		os.remove(name_of_summaryfile)
@@ -583,14 +584,15 @@ def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary)
 			for first, value in add_to_summary.items():
 				pano_id, x, y = first.split(",")
 				x = int(float(x))
-				y = int(float(y))
+				y = int(float(y)) 
 				values = value[2:]
 				cvlabel = value[0]
 				confidence = value[1]
 				complete = pano_id + "," + str(float(x)) + "," + str(float(y))
 				for label_id, userlabel in user_data[complete]:
 					value = float(values[pytorch_label_from_int.index(userlabel)])
-					row = [label_id, pano_id, x, y, cvlabel, confidence, userlabel, value]
+					score = get_score(cvlabel, confidence, userlabel, value)
+					row = [label_id, pano_id, x, y, cvlabel, confidence, userlabel, value, score]
 					writer.writerow(row)
 			for labelrow in labels_list:
 				pano_id = labelrow[0]
@@ -605,8 +607,9 @@ def write_summary_file(rows_dict, labels_list , add_to_summary, path_to_summary)
 					label,confidence  = cv_respone.split(",")
 					for label_id, user_label in user_data[complete]:
 						user_confidence = round(float(values[user_label]), 2)
+						score = get_score(label, confidence, user_label, user_confidence)
 						value = [label_id, pano_id, int(x), int(y)] + [label, confidence] 
-						display = value.copy() + [user_label, user_confidence]
+						display = value.copy() + [user_label, user_confidence, score]
 						writer.writerow(display)
 						raw_stuff = list(values)
 						rounded_stuff = [round(float(item), 2) for item in raw_stuff] 
@@ -744,7 +747,7 @@ def generate_validation_data(input_data,path_to_panos,path_to_summary, number_ag
 		print("There is no such directory for path to panos")
 		return "Couldn't generate a summary file"
 	first = time.time()
-	ignore_null = False 
+	ignore_null = True 
 	generate_data(input_data, date_after, path_to_panos, ignore_null, number_agree, path_to_summary, verbose, num_threads)
 	second = time.time()
 	if(verbose):
