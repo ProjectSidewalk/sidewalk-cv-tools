@@ -1,3 +1,5 @@
+# Written by Devesh Sarda, Galen Weld, and Kavi Dey. June - August 2019
+
 from collections import defaultdict
 import math
 import csv

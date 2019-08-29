@@ -1,3 +1,5 @@
+# Written by Devesh Sarda, Galen Weld, and Kavi Dey. June - August 2019
+
 import sys
 import utils
 from PIL import Image, ImageDraw, ImageFont, ImageColor
