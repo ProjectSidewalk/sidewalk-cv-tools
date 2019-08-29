@@ -146,7 +146,6 @@ A function that takes in a CSV file containing user validations and generates a 
 	│   ├── [pano_id].jpg
 	│   ├── [pano_id].txt
 	│   ├── [pano_id].xml
-	│   ├── [pano_id]_labels.csv
 	```
 	or in practice:
 	```
@@ -155,7 +154,6 @@ A function that takes in a CSV file containing user validations and generates a 
 	│   ├── 1a1UlhadSS_3dNtc5oI10Q.jpg
 	│   ├── 1a1UlhadSS_3dNtc5oI10Q.txt
 	│   ├── 1a1UlhadSS_3dNtc5oI10Q.xml
-	│   ├── 1a1UlhadSS_3dNtc5oI10Q_labels.csv
 	```
 - *path\_to\_summary:* The complete path to the folder where the summary.csv file which contains information about the CV's prediction is saved. Please see the returns section about more information about the summary file. 
 - *number\_agree (optional):* This is the minimum number of labels that must be present in the input file for each unique location (which can basicially be though as pano_id + sv_x + sv_y) before the CV's get predictions on the label. The default is ```1``` so that every label in the input file is analyzed. 
@@ -164,7 +162,7 @@ A function that takes in a CSV file containing user validations and generates a 
 - *verbose (optional):* This enables/disables debugging printouts. The default is ```False```
 
 **Returns:**
-The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```label_id, pano_id, SV_X, SV_Y, CVLabel, CVLabel_Confidence, UserLabel, UserLabel_Confidence, Priorirty Score``` The user label confidence is the confidence value that the cv gave for the user label type while the CV Label Confidence is the confidence value for the label type that the CV think the object is most likely to be and may often overlap with the user label type. The confidence values are the raw confidence values (can be positive or negative) rounded to 2 decimal places. An example row looks like ```9,	4s6C3NR6YRvHCYKMM_00QQ,3400,-400,CurbRamp,0.95,Obstacle,0.77```
+The path to a csv file called ```summary.csv``` in the folder specificed in the path\_to\_summary argument. Each row of the ouput file will have the following format ```label_id,CVLabel, CVLabel_Confidence, UserLabel, UserLabel_Confidence, Priorirty Score, No Curb Ramp Confidence, Null Confidence, Obstacle Confidence, Curb Ramp confidence, Surface Problem confidence``` The user label confidence is the confidence value that the cv gave for the user label type while the CV Label Confidence is the confidence value for the label type that the CV think the object is most likely to be and may often overlap with the user label type. The confidence values are the raw confidence values (can be positive or negative) rounded to 2 decimal places. An example row looks like ```9,CurbRamp,0.95,Obstacle,0.77,0.7541790510209603,-0.86,0.82,0.77,0.95,-2.6```
 
  The SV_X and the SV_Y be converted to XY pixel coordinats on the panorama using this formula:
 			```
