@@ -187,7 +187,7 @@ Input: predictions 	A list of strings each of which is a coordinate pair represe
 example: ["100,-200", "-300, 400", ...]
 	   pano The pano_id of the image on which the label was placed 
 	   path_to_panos The complete path to the directory which contains the pano in the format specified at 
-	   https://github.com/ProjectSidewalk/sidewalk-cv-tools
+	   https://github.com/ProjectSidewalk/sidewalk-cv-tools/tree/core_integration
 Returns: A 1 if the crops was sucessfully created and 0 if the crop could not be made
 
 '''
@@ -242,7 +242,7 @@ Calls the make_crop method for the pano_id extracted from the queue and displays
 to the user. Mainly used to speed up the crop creating process 
 Inputs: queue A queue where each item is a list which has the following format [pano_id, coordinate_pair1, coordinate_pair2, ...]
 example: ["1a1UlhadSS_3dNtc5oI10Q","100,-200", "-300, 400", ...]
-		path_to_panos The complete path to the directory which contains the pano in the format specified at  https://github.com/ProjectSidewalk/sidewalk-cv-tools
+		path_to_panos The complete path to the directory which contains the pano in the format specified at  https://github.com/ProjectSidewalk/sidewalk-cv-tools/tree/core_integration
 Returns: Nothing
 '''
 
@@ -262,7 +262,7 @@ Puts each pano along with the coordinates of the user labels for that pano in to
 runs multiple threads to make the necessary crops
 Inputs: dict_image A dictionary where the key is the pano_id ("1a1UlhadSS_3dNtc5oI10Q") and the value is
 a list of strings representing the coordinates ["100,-200", "-300, 400", ...]
-		path_to_panos The complete path to the directory which contains the panos in the format specified at  https://github.com/ProjectSidewalk/sidewalk-cv-tools
+		path_to_panos The complete path to the directory which contains the panos in the format specified at  https://github.com/ProjectSidewalk/sidewalk-cv-tools/tree/core_integration
 		num_threads The number of threads to make and it depends on the hardware specificiations of the device.  The num_threads value is equal to # of logical processors
 		of your device which can be found at Task Manager -> Peformance -> CPU. 
 '''
@@ -601,7 +601,7 @@ def read_validation_data(path, date_after, existing_labels, add_to_summary, numb
 '''
 	Extracts information about all the labels that the CV systems has previously processed 
 	so that we don't need to process to the locations again
-	Input: path_to_panos The complete path to the directory which contains the panos in the format specified at  https://github.com/ProjectSidewalk/sidewalk-cv-tools
+	Input: path_to_panos The complete path to the directory which contains the panos in the format specified at  https://github.com/ProjectSidewalk/sidewalk-cv-tools/tree/core_integration
 	Returns: A dictionary whose key is pano_id + "," + sv_x + "," + sv_y ("1a1UlhadSS_3dNtc5oI10Q,-300,400") and the value is a list of format [CV_Label 
 (label type with max confidence), confidence (confidence value for cv_label), raw values of confidences for the 5 label types]
 '''
@@ -650,7 +650,7 @@ def update_labels_already_made(new_lables,path_to_panos):
 
 '''
 Main method that calls all the above methods to generate the summary.csv file from the input labels file and all the
-steps in between. Please see  the validation section of the README at https://github.com/ProjectSidewalk/sidewalk-cv-tools 
+steps in between. Please see  the validation section of the README at https://github.com/ProjectSidewalk/sidewalk-cv-tools/tree/core_integration
 for information about each of the inputs
 Returns Nothing
 '''
@@ -672,7 +672,7 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 	new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary) #Write the summary file 
 	if(verbose):
 		print("Number of new labels is " + str(len(new_labels)))
-	#update_labels_already_made(new_labels,path_to_panos) #Save the locations that have been currently processed 
+	update_labels_already_made(new_labels,path_to_panos) #Save the locations that have been currently processed 
 	utils.clear_dir(crops)
 	if os.path.exists(path_to_completelabels):
 		os.remove(path_to_completelabels)
@@ -680,7 +680,7 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 '''
 Wrapper class that interacts with the users whose main function is to the call the generate_data method
 and has all the optional values loaded. 
-Returns the path to the summary file and please write_summary_file or https://github.com/ProjectSidewalk/sidewalk-cv-tools 
+Returns the path to the summary file and please write_summary_file or https://github.com/ProjectSidewalk/sidewalk-cv-tools/tree/core_integration 
 about more information about the output.
 Throws a FileNotFoundError if the path_to_panos or the input_data file does not exists
 '''
