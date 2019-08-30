@@ -672,7 +672,7 @@ def generate_data(input_data, date_after,path_to_panos, ignore_null, number_agre
 	new_labels = write_summary_file(rows_dict, labels_list, add_to_summary, path_to_summary) #Write the summary file 
 	if(verbose):
 		print("Number of new labels is " + str(len(new_labels)))
-	#update_labels_already_made(new_labels,path_to_panos) #Save the locations that have been currently processed 
+	update_labels_already_made(new_labels,path_to_panos) #Save the locations that have been currently processed 
 	utils.clear_dir(crops)
 	if os.path.exists(path_to_completelabels):
 		os.remove(path_to_completelabels)
