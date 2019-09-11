@@ -2,12 +2,11 @@
 import math
 import os
 import json
+
 def bilinear_interpolation(x, y, points):
 	'''Interpolate (x,y) from values associated with four points.
-
 	The four points are a list of four triplets:  (x, y, value).
 	The four points can be in any order.  They should form a rectangle.
-
 		>>> bilinear_interpolation(12, 5.5,
 		...                        [(10, 4, 100),
 		...                         (20, 4, 200),
@@ -15,14 +14,13 @@ def bilinear_interpolation(x, y, points):
 		...                         (20, 6, 300)])
 		165.0
 	
-	Code written by Raymond Hettinger. Check:
-	http://stackoverflow.com/questions/8661537/how-to-perform-bilinear-interpolation-in-python
+	Modified by Kotaro.
+	In case four points have same x values or y values, perform linear interpolation
 	'''
 	# See formula at:  http://en.wikipedia.org/wiki/Bilinear_interpolation
 
 	points = sorted(points)               # order points by x, then by y
 	(x1, y1, q11), (_x1, y2, q12), (x2, _y1, q21), (_x2, _y2, q22) = points
-
 
 	if (x1 == _x1) and (x1 == x2) and (x1 == _x2):
 		if x != x1:
@@ -36,8 +34,6 @@ def bilinear_interpolation(x, y, points):
 		if x == x1:
 			return q11
 		return (q11 * (_x2 - x) + q22 * (x - x1)) / ((_x2 - x1) + 0.0)
-			
-
 	if x1 != _x1 or x2 != _x2 or y1 != _y1 or y2 != _y2:
 		raise ValueError('points do not form a rectangle')
 	if not x1 <= x <= x2 or not y1 <= y <= y2:
@@ -89,24 +85,8 @@ def predict_crop_size_by_position(x, y, im_width, im_height):
 
 	return crop_size
 
-
 def predict_crop_size(x, y, im_width, im_height, depth_txt):
-	"""
-	# Calculate distance from point to image center
-	dist_to_center = math.sqrt((x-im_width/2)**2 + (y-im_height/2)**2)
-	# Calculate distance from point to center of left edge
-	dist_to_left_edge = math.sqrt((x-0)**2 + (y-im_height/2)**2)
-	# Calculate distance from point to center of right edge
-	dist_to_right_edge = math.sqrt((x - im_width) ** 2 + (y - im_height/2) ** 2)
-
-	min_dist = min([dist_to_center, dist_to_left_edge, dist_to_right_edge])
-
-	crop_size = (4.0/15.0)*min_dist + 200
-
-	print("Min dist was "+str(min_dist))
-	"""
 	### TEMP FIX FOR THE DEPTH CALCULATION. See Github Issue: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2 ###
-	x *= 13312/im_width
 	x *= 13312/im_width
 	y *= 6656/im_width
 	crop_size = 0
@@ -114,14 +94,21 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 		depth_x = depth_txt[:, 0::3]
 		depth_y = depth_txt[:, 1::3]
 		depth_z = depth_txt[:, 2::3]
+		
 		depth = interpolated_3d_point(x, y, depth_x, depth_y, depth_z)
 		depth_x = depth[0]
 		depth_y = depth[1]
 		depth_z = depth[2]
+
 		distance = math.sqrt(depth_x ** 2 + depth_y ** 2 + depth_z ** 2)
 		if distance == "nan":
+
+			# If no depth data is available, use position in panorama as fallback
+			# Calculate distance from point to image center
 			dist_to_center = math.sqrt((x - im_width / 2) ** 2 + (y - im_height / 2) ** 2)
+			# Calculate distance from point to center of left edge
 			dist_to_left_edge = math.sqrt((x - 0) ** 2 + (y - im_height / 2) ** 2)
+			# Calculate distance from point to center of right edge
 			dist_to_right_edge = math.sqrt((x - im_width) ** 2 + (y - im_height / 2) ** 2)
 
 			min_dist = min([dist_to_center, dist_to_left_edge, dist_to_right_edge])
@@ -129,6 +116,9 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 			crop_size = (4.0 / 15.0) * min_dist + 200
 
 		else:
+			# crop_size = (30700.0/37.0)-(300.0/37.0)*distance
+			# crop_size = 2600 - 220*distance
+			# crop_size = (5875.0/3.0)-(275.0/3.0)*distance
 			crop_size = 2050 - 110 * distance
 			crop_size = 8725.6 * (distance ** -1.192)
 			if crop_size < 50:
@@ -137,8 +127,12 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 				crop_size = 1500
 
 	except IOError:
+		# If no depth data is available, use position in panorama as fallback
+		# Calculate distance from point to image center
 		dist_to_center = math.sqrt((x - im_width / 2) ** 2 + (y - im_height / 2) ** 2)
+		# Calculate distance from point to center of left edge
 		dist_to_left_edge = math.sqrt((x - 0) ** 2 + (y - im_height / 2) ** 2)
+		# Calculate distance from point to center of right edge
 		dist_to_right_edge = math.sqrt((x - im_width) ** 2 + (y - im_height / 2) ** 2)
 
 		min_dist = min([dist_to_center, dist_to_left_edge, dist_to_right_edge])
@@ -148,20 +142,23 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 	return crop_size
 
 
-def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, sv_image_x, sv_image_y, PanoYawDeg, output_filebase, factor = 1):
+def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, sv_image_x, sv_image_y, PanoYawDeg, output_filebase):
 	img_filename  = output_filebase + '.jpg'
 	meta_filename = output_filebase + '.json'
+
 	im_width = GSV_IMAGE_WIDTH
 	im_height = GSV_IMAGE_HEIGHT
+
+	PanoYawDeg = 180.0 - float(PanoYawDeg)
+	
 	x = ((float(PanoYawDeg) / 360) * im_width + sv_image_x) % im_width
 	y = im_height / 2 - sv_image_y
 
 	# Crop rectangle around label
 	cropped_square = None
 	
-	predicted_crop_size = -1
 	try:
-		predicted_crop_size = factor * predict_crop_size(x, y, im_width, im_height, depth_txt)
+		predicted_crop_size = predict_crop_size(x, y, im_width, im_height, depth_txt)
 		crop_width = predicted_crop_size
 		crop_height = predicted_crop_size
 		#print(x, y)
@@ -169,24 +166,16 @@ def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, 
 		top_left_y = y - crop_height / 2
 		cropped_square = im.crop((top_left_x, top_left_y, top_left_x + crop_width, top_left_y + crop_height))
 	except (ValueError, IndexError) as e:
-		predicted_crop_size = factor * predict_crop_size_by_position(x, y, im_width, im_height)
+		#print(e)
+		predicted_crop_size = predict_crop_size_by_position(x, y, im_width, im_height)
 		crop_width = predicted_crop_size
 		crop_height = predicted_crop_size
 		#print(x, y)
 		top_left_x = x - crop_width / 2
 		top_left_y = y - crop_height / 2
 		cropped_square = im.crop((top_left_x, top_left_y, top_left_x + crop_width, top_left_y + crop_height))
-	predicted_crop_size *= factor
-	if(predict_crop_size != -1):
-		crop_width = predicted_crop_size
-		crop_height = predicted_crop_size
-		#print(x, y)
-		top_left_x = max(x - crop_width / 2, 0)
-		top_left_y = max(y - crop_height / 2, 0)
-		bottom_right_x = min(top_left_x + crop_width,im_width)
-		bottom_right_y = min(top_left_y + crop_height,im_height)
-		cropped_square = im.crop((top_left_x, top_left_y,bottom_right_x, bottom_right_y))
-		cropped_square.save(img_filename)
+	
+	cropped_square.save(img_filename)
 
 	# write metadata
 	meta = {'crop size' : predicted_crop_size,
@@ -202,6 +191,7 @@ def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, 
 		json.dump(meta, metafile)
 
 	return
+
 
 def clear_dir(dir_to_clear):
 	''' deletes all files in a directory and it's sub directories '''
