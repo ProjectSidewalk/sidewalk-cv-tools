@@ -14,6 +14,9 @@ try:
 except ImportError as e:
 	from xml.etree import ElementTree as ET
 
+EXPECTED_IMAGE_WIDTH = 13312
+EXPECTED_IMAGE_HEIGHT = 6656
+
 label_from_int   = ('Curb Cut', 'Missing Cut', 'Obstruction', 'Sfc Problem')
 
 path_to_gsv_scrapes = "panos/"
@@ -182,9 +185,9 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 
 	print("Min dist was "+str(min_dist))
 	"""
-	### TEMP FIX FOR THE DEPTH CALCULATION. See Github Issue: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2 ###
-	x *= 13312/im_width
-	y *= 6656/im_width
+	# TEMP FIX FOR THE DEPTH CALCULATION: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2
+	x *= EXPECTED_IMAGE_WIDTH / im_width
+	y *= EXPECTED_IMAGE_HEIGHT / im_height
 	crop_size = 0
 	try:
 		depth_x = depth_txt[:, 0::3]
@@ -244,11 +247,15 @@ def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, 
 
 	im_width = GSV_IMAGE_WIDTH
 	im_height = GSV_IMAGE_HEIGHT
+
+	# TEMP FIX FOR THE DEPTH CALCULATION: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2
+	image_x = sv_image_x * im_width / EXPECTED_IMAGE_WIDTH
+	image_y = sv_image_y * im_height / EXPECTED_IMAGE_HEIGHT
 	#im = Image.open(path_to_image)
 	#draw = ImageDraw.Draw(im)
 	# sv_image_x = sv_image_x - 100
-	x = ((float(PanoYawDeg) / 360) * im_width + sv_image_x) % im_width
-	y = im_height / 2 - sv_image_y
+	x = ((float(PanoYawDeg) / 360) * im_width + image_x) % im_width
+	y = im_height / 2 - image_y
 
 	# Crop rectangle around label
 	cropped_square = None

@@ -265,9 +265,13 @@ def annotate(img, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, pano_yaw_deg, coords, label
 		translates streetview coords to pixel coords
 		if given a box, marks that box around the label
 	"""
+	# TEMP FIX FOR THE DEPTH CALCULATION: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2
 	sv_x, sv_y = coords
-	x = ((float(pano_yaw_deg) / 360) * GSV_IMAGE_WIDTH + sv_x) % GSV_IMAGE_WIDTH
-	y = GSV_IMAGE_HEIGHT / 2 - sv_y
+	image_x = sv_x * GSV_IMAGE_WIDTH / utils.EXPECTED_IMAGE_WIDTH
+	image_y = sv_y * GSV_IMAGE_HEIGHT / utils.EXPECTED_IMAGE_HEIGHT
+
+	x = ((float(pano_yaw_deg) / 360) * GSV_IMAGE_WIDTH + image_x) % GSV_IMAGE_WIDTH
+	y = GSV_IMAGE_HEIGHT / 2 - image_y
 
 	if show_coords: label = "{},{} {}".format(sv_x, sv_y, label)
 
@@ -314,8 +318,12 @@ def show_predictions_on_image(pano_root, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, corr
 		sv_x, sv_y = map(float, coords.split(','))
 
 		if show_box:
-			x = ((float(pano_yaw_deg) / 360) * GSV_IMAGE_WIDTH + sv_x) % GSV_IMAGE_WIDTH
-			y = GSV_IMAGE_HEIGHT / 2 - sv_y
+			# TEMP FIX FOR THE DEPTH CALCULATION: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2
+			image_x = sv_x * GSV_IMAGE_WIDTH / utils.EXPECTED_IMAGE_WIDTH
+			image_y = sv_y * GSV_IMAGE_HEIGHT / utils.EXPECTED_IMAGE_HEIGHT
+
+			x = ((float(pano_yaw_deg) / 360) * GSV_IMAGE_WIDTH + image_x) % GSV_IMAGE_WIDTH
+			y = GSV_IMAGE_HEIGHT / 2 - image_y
 			try:
 				box = utils.predict_crop_size(x, y, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth)
 			except:
@@ -390,8 +398,13 @@ def single_crops(crop_dir,path_dir,model_dir, verbose=False):
 def convertfromhorizontopixel(sv_image_x, sv_image_y, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT,PanoYawDeg):
 	im_width = GSV_IMAGE_WIDTH
 	im_height = GSV_IMAGE_HEIGHT
-	x = ((float(PanoYawDeg) / 360) * im_width + sv_image_x) % im_width
-	y = im_height / 2 - sv_image_y
+
+	# TEMP FIX FOR THE DEPTH CALCULATION: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2
+	image_x = sv_image_x * GSV_IMAGE_WIDTH / utils.EXPECTED_IMAGE_WIDTH
+	image_y = sv_image_y * GSV_IMAGE_HEIGHT / utils.EXPECTED_IMAGE_HEIGHT
+
+	x = ((float(PanoYawDeg) / 360) * im_width + image_x) % im_width
+	y = im_height / 2 - image_y
 	return (x, y)
 
 '''
