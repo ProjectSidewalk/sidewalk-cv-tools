@@ -69,18 +69,6 @@ def bilinear_interpolation(x, y, points):
 			q12 * (x2 - x) * (y - y1) +
 			q22 * (x - x1) * (y - y1)) / ((x2 - x1) * (y2 - y1) + 0.0)
 
-
-def extract_panoyawdeg(path_to_metadata_xml):
-	pano = {}
-	pano_xml = open(path_to_metadata_xml, 'rb')
-	tree = ET.parse(pano_xml)
-	root = tree.getroot()
-	for child in root:
-		if child.tag == 'projection_properties':
-			pano[child.tag] = child.attrib
-
-	return pano['projection_properties']['pano_yaw_deg']
-
 def extract_width_and_height(path_to_metadata_xml):
 	pano = {}
 	pano_xml = open(path_to_metadata_xml, 'rb')
@@ -146,7 +134,7 @@ def extract_panoyawdeg(path_to_metadata_xml):
 		if child.tag == 'projection_properties':
 			pano[child.tag] = child.attrib
 
-	return pano['projection_properties']['pano_yaw_deg']
+	return str(180 - float(pano['projection_properties']['pano_yaw_deg']))
 
 
 def get_depth_at_location(depth_txt, xi, yi):

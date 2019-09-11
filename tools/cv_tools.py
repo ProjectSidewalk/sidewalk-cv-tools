@@ -406,7 +406,9 @@ def get_data(path_to_metadata_xml):
 	for child in root:
 		if(child.tag == 'data_properties' or child.tag == 'projection_properties'):
 			pano[child.tag] = child.attrib
-	return [pano['data_properties']['image_width'], pano['data_properties']['image_height'], pano['projection_properties']['pano_yaw_deg']]
+	return [pano['data_properties']['image_width'],
+			pano['data_properties']['image_height'],
+			str(180 - float(pano['projection_properties']['pano_yaw_deg']))]
 
 def get_width_and_height(path_to_metadata_xml):
 	pano = {}
