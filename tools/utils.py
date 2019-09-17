@@ -14,6 +14,9 @@ try:
 except ImportError as e:
 	from xml.etree import ElementTree as ET
 
+EXPECTED_IMAGE_WIDTH = 13312
+EXPECTED_IMAGE_HEIGHT = 6656
+
 label_from_int   = ('Curb Cut', 'Missing Cut', 'Obstruction', 'Sfc Problem')
 
 path_to_gsv_scrapes = "panos/"
@@ -68,18 +71,6 @@ def bilinear_interpolation(x, y, points):
 			q21 * (x - x1) * (y2 - y) +
 			q12 * (x2 - x) * (y - y1) +
 			q22 * (x - x1) * (y - y1)) / ((x2 - x1) * (y2 - y1) + 0.0)
-
-
-def extract_panoyawdeg(path_to_metadata_xml):
-	pano = {}
-	pano_xml = open(path_to_metadata_xml, 'rb')
-	tree = ET.parse(pano_xml)
-	root = tree.getroot()
-	for child in root:
-		if child.tag == 'projection_properties':
-			pano[child.tag] = child.attrib
-
-	return pano['projection_properties']['pano_yaw_deg']
 
 def extract_width_and_height(path_to_metadata_xml):
 	pano = {}
@@ -146,8 +137,7 @@ def extract_panoyawdeg(path_to_metadata_xml):
 		if child.tag == 'projection_properties':
 			pano[child.tag] = child.attrib
 
-	return pano['projection_properties']['pano_yaw_deg']
-
+	return str(180 - float(pano['projection_properties']['pano_yaw_deg']))
 
 def get_depth_at_location(depth_txt, xi, yi):
 	#depth_location = path_to_depth_txt
@@ -194,9 +184,9 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 
 	print("Min dist was "+str(min_dist))
 	"""
-	### TEMP FIX FOR THE DEPTH CALCULATION. See Github Issue: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2 ###
-	x *= 13312/im_width
-	y *= 6656/im_width
+	# TEMP FIX FOR THE DEPTH CALCULATION: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2
+	x *= EXPECTED_IMAGE_WIDTH / im_width
+	y *= EXPECTED_IMAGE_HEIGHT / im_height
 	crop_size = 0
 	try:
 		depth_x = depth_txt[:, 0::3]
@@ -250,38 +240,38 @@ def predict_crop_size(x, y, im_width, im_height, depth_txt):
 	return crop_size
 
 
-def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, sv_image_x, sv_image_y, PanoYawDeg, output_filebase):
+def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, sv_image_x, sv_image_y, PanoYawDeg, output_filebase, factor = 1.0):
 	img_filename  = output_filebase + '.jpg'
 	meta_filename = output_filebase + '.json'
 
 	im_width = GSV_IMAGE_WIDTH
 	im_height = GSV_IMAGE_HEIGHT
+
+	# TEMP FIX FOR THE DEPTH CALCULATION: https://github.com/ProjectSidewalk/sidewalk-cv-tools/issues/2
+	image_x = sv_image_x * im_width / EXPECTED_IMAGE_WIDTH
+	image_y = sv_image_y * im_height / EXPECTED_IMAGE_HEIGHT
 	#im = Image.open(path_to_image)
 	#draw = ImageDraw.Draw(im)
-	# sv_image_x = sv_image_x - 100
-	x = ((float(PanoYawDeg) / 360) * im_width + sv_image_x) % im_width
-	y = im_height / 2 - sv_image_y
+	
+	x = ((float(PanoYawDeg) / 360) * im_width + image_x) % im_width
+	y = im_height / 2 - image_y
 
 	# Crop rectangle around label
 	cropped_square = None
-	
+
 	try:
-		predicted_crop_size = predict_crop_size(x, y, im_width, im_height, depth_txt)
-		crop_width = predicted_crop_size
-		crop_height = predicted_crop_size
-		#print(x, y)
-		top_left_x = x - crop_width / 2
-		top_left_y = y - crop_height / 2
-		cropped_square = im.crop((top_left_x, top_left_y, top_left_x + crop_width, top_left_y + crop_height))
+		predicted_crop_size = factor * predict_crop_size(x, y, im_width, im_height, depth_txt)
 	except (ValueError, IndexError) as e:
-		#print(e)
-		predicted_crop_size = predict_crop_size_by_position(x, y, im_width, im_height)
-		crop_width = predicted_crop_size
-		crop_height = predicted_crop_size
-		#print(x, y)
-		top_left_x = x - crop_width / 2
-		top_left_y = y - crop_height / 2
-		cropped_square = im.crop((top_left_x, top_left_y, top_left_x + crop_width, top_left_y + crop_height))
+		predicted_crop_size = factor * predict_crop_size_by_position(x, y, im_width, im_height)
+
+	predicted_crop_size = max(predicted_crop_size, 450)
+
+	crop_width = predicted_crop_size
+	crop_height = predicted_crop_size
+	top_left_x = int(x - crop_width / 2)
+	top_left_y = int(y - crop_height / 2)
+	cropped_square = im.crop((top_left_x, top_left_y, top_left_x + crop_width, top_left_y + crop_height))
+	#print("Predicted crop size for " + str(pano_id) + "," + str(sv_image_x) + "," + str(sv_image_y) + " is " + str(predicted_crop_size))
 	
 	cropped_square.save(img_filename)
 
@@ -297,6 +287,8 @@ def make_single_crop(im, GSV_IMAGE_WIDTH, GSV_IMAGE_HEIGHT, depth_txt, pano_id, 
 
 	with open(meta_filename, 'w') as metafile:
 		json.dump(meta, metafile)
+
+	
 
 	return
 

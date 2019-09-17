@@ -1,0 +1,5 @@
+pano_id,sv_x,sv_y,cv label,cv confidence,NoCurbRamp,Null,Obstacle,CurbRamp,SurfaceProblem
+4s6C3NR6YRvHCYKMM_00QQ,7600,-100,Obstacle,6.86,-1.16,0.78,6.86,-3.33,-4.0
+4s6C3NR6YRvHCYKMM_00QQ,12000,-900,Obstacle,5.06,-1.85,0.55,5.06,-1.21,-3.62
+4s6C3NR6YRvHCYKMM_00QQ,3300,-1000,CurbRamp,3.65,-4.68,-3.91,2.2,3.65,-3.67
+4s6C3NR6YRvHCYKMM_00QQ,3400,-400,CurbRamp,0.95,-0.86,0.82,0.77,0.95,-2.6
